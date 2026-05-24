@@ -4,12 +4,12 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.EqualsAndHashCode;
 
 @Entity
 @Table(name = "profile_modules")
 @Data
-@NoArgsConstructor
+@EqualsAndHashCode(callSuper = false)
 @AllArgsConstructor
 public class ProfileModule extends Module {
     

@@ -4,6 +4,7 @@ import com.isptec.economiahistoriaapi.dto.ForumThreadDTO;
 import com.isptec.economiahistoriaapi.exception.ResourceNotFoundException;
 import com.isptec.economiahistoriaapi.model.ForumThread;
 import com.isptec.economiahistoriaapi.service.ForumThreadService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -15,6 +16,7 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/v1/forum-threads")
 @RequiredArgsConstructor
+@Tag(name = "08. Fórum - Tópicos", description = "UC13 Criar tópico de discussão")
 public class ForumThreadController {
     
     private final ForumThreadService forumThreadService;

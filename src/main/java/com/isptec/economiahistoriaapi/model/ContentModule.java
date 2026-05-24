@@ -3,12 +3,14 @@ package com.isptec.economiahistoriaapi.model;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import java.util.List;
 
 @Entity
 @Table(name = "content_modules")
 @Data
+@EqualsAndHashCode(callSuper=false)
 @NoArgsConstructor
 @AllArgsConstructor
 public class ContentModule extends Module {

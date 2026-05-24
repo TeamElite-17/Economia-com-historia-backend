@@ -1,5 +1,6 @@
 package com.isptec.economiahistoriaapi.model;
 
+import com.isptec.economiahistoriaapi.enums.ContentStatus;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -27,6 +28,14 @@ public class Quiz {
     
     @Column(nullable = false)
     private int passingScore;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    @Builder.Default
+    private ContentStatus status = ContentStatus.DRAFT;
+
+    @Column(name = "author_id", length = 36)
+    private String authorId;
     
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "quiz_module_id")

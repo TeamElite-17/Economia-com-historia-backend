@@ -1,140 +1,162 @@
 package com.isptec.economiahistoriaapi.controller;
 
 import com.isptec.economiahistoriaapi.dto.ContentItemDTO;
+import com.isptec.economiahistoriaapi.enums.ContentStatus;
 import com.isptec.economiahistoriaapi.exception.ResourceNotFoundException;
 import com.isptec.economiahistoriaapi.model.ContentItem;
 import com.isptec.economiahistoriaapi.service.ContentItemService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
+import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/v1/content-items")
 @RequiredArgsConstructor
+@Tag(name = "04. Conteúdos Didáticos", description = "UC07 Criar rascunho · UC08 Rever · UC09 Aprovar/Publicar · UC10 Visualizar")
 public class ContentItemController {
-    
+
     private final ContentItemService contentItemService;
-    
-    /**
-     * Obter detalhes de um item de conteúdo específico
-     */
+
+    /** UC10 — Visualizar conteúdos publicados (todos os atores autenticados) */
+    @GetMapping
+    public ResponseEntity<List<ContentItemDTO>> getPublishedContent() {
+        List<ContentItemDTO> items = contentItemService.getContentByStatus(ContentStatus.PUBLISHED)
+                .stream().map(this::convertToDTO).collect(Collectors.toList());
+        return ResponseEntity.ok(items);
+    }
+
+    /** UC10 — Detalhe de um item de conteúdo */
     @GetMapping("/{contentId}")
     public ResponseEntity<ContentItemDTO> getContentDetail(@PathVariable String contentId) {
         return contentItemService.getContentItemById(contentId)
                 .map(this::convertToDTO)
-                .map(dto -> new ResponseEntity<>(dto, HttpStatus.OK))
+                .map(ResponseEntity::ok)
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        "Item de conteúdo não encontrado com ID: " + contentId));
+                        "Conteúdo não encontrado com ID: " + contentId));
     }
-    
-    /**
-     * Listar todos os itens de conteúdo
-     */
-    @GetMapping
-    public ResponseEntity<List<ContentItemDTO>> getAllContentItems() {
-        List<ContentItemDTO> items = contentItemService.getAllContentItems()
-                .stream()
-                .map(this::convertToDTO)
-                .collect(Collectors.toList());
-        return new ResponseEntity<>(items, HttpStatus.OK);
-    }
-    
-    /**
-     * Listar itens de conteúdo por módulo
-     */
+
+    /** UC10 — Listar por módulo */
     @GetMapping("/module/{moduleId}")
     public ResponseEntity<List<ContentItemDTO>> getContentByModule(@PathVariable String moduleId) {
-        List<ContentItemDTO> items = contentItemService.getContentByModule(moduleId)
-                .stream()
-                .map(this::convertToDTO)
-                .collect(Collectors.toList());
-        return new ResponseEntity<>(items, HttpStatus.OK);
+        return ResponseEntity.ok(contentItemService.getContentByModule(moduleId)
+                .stream().map(this::convertToDTO).collect(Collectors.toList()));
     }
-    
-    /**
-     * Listar itens de conteúdo por região
-     */
+
+    /** UC10 — Listar por região */
     @GetMapping("/region/{regionTag}")
     public ResponseEntity<List<ContentItemDTO>> getContentByRegion(@PathVariable String regionTag) {
-        List<ContentItemDTO> items = contentItemService.getContentByRegion(regionTag)
-                .stream()
-                .map(this::convertToDTO)
-                .collect(Collectors.toList());
-        return new ResponseEntity<>(items, HttpStatus.OK);
+        return ResponseEntity.ok(contentItemService.getContentByRegion(regionTag)
+                .stream().map(this::convertToDTO).collect(Collectors.toList()));
     }
-    
-    /**
-     * Criar um novo item de conteúdo
-     */
+
+    /** Listar rascunhos e conteúdos em revisão (Revisor e Aprovador) */
+    @GetMapping("/pending")
+    @PreAuthorize("hasAnyRole('REVISOR', 'APROVADOR', 'ADMIN', 'SUPERADMIN')")
+    public ResponseEntity<List<ContentItemDTO>> getPendingContent() {
+        List<ContentItemDTO> items = contentItemService.getContentByStatus(ContentStatus.UNDER_REVIEW)
+                .stream().map(this::convertToDTO).collect(Collectors.toList());
+        return ResponseEntity.ok(items);
+    }
+
+    /** UC07 — Criar rascunho de conteúdo (Escritor) */
     @PostMapping
-    public ResponseEntity<ContentItemDTO> createContentItem(@Valid @RequestBody ContentItemDTO contentItemDTO) {
-        ContentItem contentItem = convertToEntity(contentItemDTO);
-        ContentItem savedItem = contentItemService.createContentItem(contentItem);
-        return new ResponseEntity<>(convertToDTO(savedItem), HttpStatus.CREATED);
+    @PreAuthorize("hasRole('ESCRITOR')")
+    public ResponseEntity<ContentItemDTO> createDraft(@Valid @RequestBody ContentItemDTO dto) {
+        ContentItem item = convertToEntity(dto);
+        item.setStatus(ContentStatus.DRAFT);
+        return new ResponseEntity<>(convertToDTO(contentItemService.createContentItem(item)), HttpStatus.CREATED);
     }
-    
-    /**
-     * Atualizar um item de conteúdo
-     */
+
+    /** UC08 — Editar conteúdo (Escritor edita os seus; Revisor edita qualquer rascunho) */
     @PutMapping("/{contentId}")
-    public ResponseEntity<ContentItemDTO> updateContentItem(
+    @PreAuthorize("hasAnyRole('ESCRITOR', 'REVISOR', 'ADMIN')")
+    public ResponseEntity<ContentItemDTO> updateContent(
             @PathVariable String contentId,
-            @Valid @RequestBody ContentItemDTO contentItemDTO) {
-        
-        ContentItem existingItem = contentItemService.getContentItemById(contentId)
+            @Valid @RequestBody ContentItemDTO dto) {
+        ContentItem existing = contentItemService.getContentItemById(contentId)
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        "Item de conteúdo não encontrado com ID: " + contentId));
-        
-        ContentItem updatedItem = convertToEntity(contentItemDTO);
-        updatedItem.setContentId(contentId);
-        ContentItem savedItem = contentItemService.updateContentItem(updatedItem);
-        
-        return new ResponseEntity<>(convertToDTO(savedItem), HttpStatus.OK);
+                        "Conteúdo não encontrado com ID: " + contentId));
+        ContentItem updated = convertToEntity(dto);
+        updated.setContentId(contentId);
+        updated.setStatus(existing.getStatus());
+        return ResponseEntity.ok(convertToDTO(contentItemService.updateContentItem(updated)));
     }
-    
-    /**
-     * Deletar um item de conteúdo
-     */
+
+    /** UC08 — Submeter para revisão (Escritor) */
+    @PatchMapping("/{contentId}/submit")
+    @PreAuthorize("hasRole('ESCRITOR')")
+    public ResponseEntity<ContentItemDTO> submitForReview(@PathVariable String contentId) {
+        ContentItem item = contentItemService.getContentItemById(contentId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Conteúdo não encontrado com ID: " + contentId));
+        item.setStatus(ContentStatus.UNDER_REVIEW);
+        return ResponseEntity.ok(convertToDTO(contentItemService.updateContentItem(item)));
+    }
+
+    /** UC09 — Aprovar e publicar conteúdo (Aprovador) */
+    @PatchMapping("/{contentId}/approve")
+    @PreAuthorize("hasRole('APROVADOR')")
+    public ResponseEntity<ContentItemDTO> approveContent(@PathVariable String contentId) {
+        ContentItem item = contentItemService.getContentItemById(contentId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Conteúdo não encontrado com ID: " + contentId));
+        item.setStatus(ContentStatus.PUBLISHED);
+        item.setPublishedAt(new Date());
+        return ResponseEntity.ok(convertToDTO(contentItemService.updateContentItem(item)));
+    }
+
+    /** UC09 — Rejeitar conteúdo (Aprovador) */
+    @PatchMapping("/{contentId}/reject")
+    @PreAuthorize("hasRole('APROVADOR')")
+    public ResponseEntity<ContentItemDTO> rejectContent(@PathVariable String contentId) {
+        ContentItem item = contentItemService.getContentItemById(contentId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Conteúdo não encontrado com ID: " + contentId));
+        item.setStatus(ContentStatus.REJECTED);
+        return ResponseEntity.ok(convertToDTO(contentItemService.updateContentItem(item)));
+    }
+
+    /** Eliminar conteúdo (Admin) */
     @DeleteMapping("/{contentId}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPERADMIN')")
     public ResponseEntity<Void> deleteContentItem(@PathVariable String contentId) {
         if (!contentItemService.getContentItemById(contentId).isPresent()) {
-            throw new ResourceNotFoundException(
-                    "Item de conteúdo não encontrado com ID: " + contentId);
+            throw new ResourceNotFoundException("Conteúdo não encontrado com ID: " + contentId);
         }
         contentItemService.deleteContentItem(contentId);
-        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+        return ResponseEntity.noContent().build();
     }
-    
-    // ========== Métodos de Conversão ==========
-    
-    private ContentItemDTO convertToDTO(ContentItem contentItem) {
+
+    // ========== Conversão ==========
+
+    private ContentItemDTO convertToDTO(ContentItem item) {
         return ContentItemDTO.builder()
-                .contentId(contentItem.getContentId())
-                .title(contentItem.getTitle())
-                .description(contentItem.getDescription())
-                .mediaType(contentItem.getMediaType().toString())
-                .sourceUrl(contentItem.getSourceUrl())
-                .regionTag(contentItem.getRegionTag())
-                .publishedAt(contentItem.getPublishedAt() != null ? 
-                        contentItem.getPublishedAt().toString() : null)
-                .regionId(contentItem.getRegionIndicator() != null ? 
-                        contentItem.getRegionIndicator().getRegionId() : null)
-                .contentModuleId(contentItem.getContentModule() != null ? 
-                        contentItem.getContentModule().getModuleId() : null)
+                .contentId(item.getContentId())
+                .title(item.getTitle())
+                .description(item.getDescription())
+                .mediaType(item.getMediaType() != null ? item.getMediaType().toString() : null)
+                .sourceUrl(item.getSourceUrl())
+                .regionTag(item.getRegionTag())
+                .publishedAt(item.getPublishedAt() != null ? item.getPublishedAt().toString() : null)
+                .regionId(item.getRegionIndicator() != null ? item.getRegionIndicator().getRegionId() : null)
+                .contentModuleId(item.getContentModule() != null ? item.getContentModule().getModuleId() : null)
                 .build();
     }
-    
-    private ContentItem convertToEntity(ContentItemDTO contentItemDTO) {
+
+    private ContentItem convertToEntity(ContentItemDTO dto) {
         return ContentItem.builder()
-                .contentId(contentItemDTO.getContentId())
-                .title(contentItemDTO.getTitle())
-                .description(contentItemDTO.getDescription())
-                .sourceUrl(contentItemDTO.getSourceUrl())
-                .regionTag(contentItemDTO.getRegionTag())
+                .contentId(dto.getContentId())
+                .title(dto.getTitle())
+                .description(dto.getDescription())
+                .sourceUrl(dto.getSourceUrl())
+                .regionTag(dto.getRegionTag())
                 .build();
     }
 }

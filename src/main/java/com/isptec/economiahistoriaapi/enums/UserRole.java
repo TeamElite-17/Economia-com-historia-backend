@@ -1,7 +1,10 @@
 package com.isptec.economiahistoriaapi.enums;
 
 public enum UserRole {
-    STUDENT,
-    TEACHER,
-    ADMIN
+    SUPERADMIN,
+    ADMIN,
+    APROVADOR,
+    REVISOR,
+    ESCRITOR,
+    ESTUDANTE
 }

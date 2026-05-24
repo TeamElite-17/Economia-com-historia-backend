@@ -1,5 +1,6 @@
 package com.isptec.economiahistoriaapi.model;
 
+import com.isptec.economiahistoriaapi.enums.ContentStatus;
 import com.isptec.economiahistoriaapi.enums.MediaType;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -35,7 +36,15 @@ public class ContentItem {
     
     @Column(length = 100)
     private String regionTag;
-    
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    @Builder.Default
+    private ContentStatus status = ContentStatus.DRAFT;
+
+    @Column(name = "author_id", length = 36)
+    private String authorId;
+
     @Temporal(TemporalType.TIMESTAMP)
     @Column(name = "published_at")
     private Date publishedAt;
