@@ -7,7 +7,9 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 @Entity
 @Table(name = "content_items")
@@ -48,14 +50,44 @@ public class ContentItem {
     @Temporal(TemporalType.TIMESTAMP)
     @Column(name = "published_at")
     private Date publishedAt;
-    
+
+    // ===== Campos específicos por tipo de media =====
+
+    /** Duração em segundos (VIDEO, PODCAST). */
+    @Column(name = "duration_seconds")
+    private Integer durationSeconds;
+
+    /** Contagem de palavras (TEXT/artigos). */
+    @Column(name = "word_count")
+    private Integer wordCount;
+
+    /** URL do ficheiro de media (vídeo, áudio, documento). */
+    @Column(name = "file_url", length = 1000)
+    private String fileUrl;
+
+    /** URL da imagem de capa/thumbnail (VIDEO, IMAGE). */
+    @Column(name = "thumbnail_url", length = 1000)
+    private String thumbnailUrl;
+
+    // ===== Relações =====
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "region_id")
     private RegionIndicator regionIndicator;
-    
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "content_module_id")
     private ContentModule contentModule;
+
+    /** Categorias temáticas do conteúdo. */
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+        name = "content_item_categories",
+        joinColumns = @JoinColumn(name = "content_id"),
+        inverseJoinColumns = @JoinColumn(name = "category_id")
+    )
+    @Builder.Default
+    private List<Category> categories = new ArrayList<>();
     
     public void play() {
         // Logic for playing media content

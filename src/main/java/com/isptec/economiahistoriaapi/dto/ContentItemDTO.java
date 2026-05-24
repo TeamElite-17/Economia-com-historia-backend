@@ -32,4 +32,10 @@ public class ContentItemDTO {
     private String regionId;
     
     private String contentModuleId;
+
+    private Integer durationSeconds;
+    private Integer wordCount;
+    private String fileUrl;
+    private String thumbnailUrl;
+    private java.util.List<CategoryDTO> categories;
 }

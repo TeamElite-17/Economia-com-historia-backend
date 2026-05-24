@@ -6,8 +6,10 @@ import com.isptec.economiahistoriaapi.dto.LoginRequest;
 import com.isptec.economiahistoriaapi.dto.RegisterRequest;
 import com.isptec.economiahistoriaapi.enums.UserRole;
 import com.isptec.economiahistoriaapi.exception.BadRequestException;
+import com.isptec.economiahistoriaapi.exception.ConflictException;
 import com.isptec.economiahistoriaapi.model.User;
 import com.isptec.economiahistoriaapi.repository.UserRepository;
+import com.isptec.economiahistoriaapi.service.TokenBlacklistService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -20,6 +22,7 @@ public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
+    private final TokenBlacklistService tokenBlacklistService;
 
     /**
      * UC01 — Efetuar Login
@@ -41,7 +44,7 @@ public class AuthService {
      */
     public AuthResponse register(RegisterRequest request) {
         if (userRepository.existsByEmail(request.getEmail())) {
-            throw new BadRequestException("Email já se encontra registado");
+            throw new ConflictException("Email já se encontra registado");
         }
 
         User user = User.builder()
@@ -55,6 +58,17 @@ public class AuthService {
         User savedUser = userRepository.save(user);
         String token = jwtUtil.generateToken(savedUser.getEmail(), savedUser.getRole().name());
         return buildResponse(savedUser, token);
+    }
+
+    /**
+     * UC03 — Logout
+     * Invalida o token JWT adicionando-o à blacklist.
+     */
+    public void logout(String bearerToken) {
+        if (bearerToken != null && bearerToken.startsWith("Bearer ")) {
+            String token = bearerToken.substring(7);
+            tokenBlacklistService.invalidate(token);
+        }
     }
 
     private AuthResponse buildResponse(User user, String token) {

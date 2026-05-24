@@ -37,6 +37,14 @@ public class JwtUtil {
         return getClaims(token).get("role", String.class);
     }
 
+    public Date extractExpiration(String token) {
+        try {
+            return getClaims(token).getExpiration();
+        } catch (JwtException | IllegalArgumentException e) {
+            return null;
+        }
+    }
+
     public boolean isTokenValid(String token) {
         try {
             getClaims(token);

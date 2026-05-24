@@ -1,9 +1,13 @@
 package com.isptec.economiahistoriaapi.controller;
 
 import com.isptec.economiahistoriaapi.dto.ContentItemDTO;
+import com.isptec.economiahistoriaapi.dto.CategoryDTO;
 import com.isptec.economiahistoriaapi.enums.ContentStatus;
+import com.isptec.economiahistoriaapi.enums.MediaType;
 import com.isptec.economiahistoriaapi.exception.ResourceNotFoundException;
 import com.isptec.economiahistoriaapi.model.ContentItem;
+import com.isptec.economiahistoriaapi.model.Category;
+import com.isptec.economiahistoriaapi.repository.CategoryRepository;
 import com.isptec.economiahistoriaapi.service.ContentItemService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +27,7 @@ import java.util.stream.Collectors;
 public class ContentItemController {
 
     private final ContentItemService contentItemService;
+    private final CategoryRepository categoryRepository;
 
     /** UC10 — Visualizar conteúdos publicados (todos os atores autenticados) */
     @GetMapping
@@ -147,16 +152,49 @@ public class ContentItemController {
                 .publishedAt(item.getPublishedAt() != null ? item.getPublishedAt().toString() : null)
                 .regionId(item.getRegionIndicator() != null ? item.getRegionIndicator().getRegionId() : null)
                 .contentModuleId(item.getContentModule() != null ? item.getContentModule().getModuleId() : null)
+                .durationSeconds(item.getDurationSeconds())
+                .wordCount(item.getWordCount())
+                .fileUrl(item.getFileUrl())
+                .thumbnailUrl(item.getThumbnailUrl())
+                .categories(item.getCategories() != null ? item.getCategories().stream()
+                        .map(cat -> CategoryDTO.builder()
+                                .categoryId(cat.getCategoryId())
+                                .name(cat.getName())
+                                .slug(cat.getSlug())
+                                .description(cat.getDescription())
+                                .build())
+                        .collect(Collectors.toList()) : null)
                 .build();
     }
 
     private ContentItem convertToEntity(ContentItemDTO dto) {
-        return ContentItem.builder()
+        ContentItem item = ContentItem.builder()
                 .contentId(dto.getContentId())
                 .title(dto.getTitle())
                 .description(dto.getDescription())
+                .mediaType(dto.getMediaType() != null ? MediaType.valueOf(dto.getMediaType().toUpperCase()) : null)
                 .sourceUrl(dto.getSourceUrl())
                 .regionTag(dto.getRegionTag())
+                .durationSeconds(dto.getDurationSeconds())
+                .wordCount(dto.getWordCount())
+                .fileUrl(dto.getFileUrl())
+                .thumbnailUrl(dto.getThumbnailUrl())
                 .build();
+
+        if (dto.getCategories() != null) {
+            List<Category> cats = dto.getCategories().stream()
+                    .map(catDto -> {
+                        if (catDto.getCategoryId() != null) {
+                            return categoryRepository.findById(catDto.getCategoryId()).orElse(null);
+                        } else if (catDto.getName() != null) {
+                            return categoryRepository.findByName(catDto.getName()).orElse(null);
+                        }
+                        return null;
+                    })
+                    .filter(java.util.Objects::nonNull)
+                    .collect(Collectors.toList());
+            item.setCategories(cats);
+        }
+        return item;
     }
 }
