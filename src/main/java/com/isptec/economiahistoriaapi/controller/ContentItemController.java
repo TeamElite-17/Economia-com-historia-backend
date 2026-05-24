@@ -8,6 +8,7 @@ import com.isptec.economiahistoriaapi.exception.ResourceNotFoundException;
 import com.isptec.economiahistoriaapi.model.ContentItem;
 import com.isptec.economiahistoriaapi.model.Category;
 import com.isptec.economiahistoriaapi.repository.CategoryRepository;
+import com.isptec.economiahistoriaapi.repository.TopicRepository;
 import com.isptec.economiahistoriaapi.service.ContentItemService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -28,6 +29,7 @@ public class ContentItemController {
 
     private final ContentItemService contentItemService;
     private final CategoryRepository categoryRepository;
+    private final TopicRepository topicRepository;
 
     /** UC10 — Visualizar conteúdos publicados (todos os atores autenticados) */
     @GetMapping
@@ -58,6 +60,13 @@ public class ContentItemController {
     @GetMapping("/region/{regionTag}")
     public ResponseEntity<List<ContentItemDTO>> getContentByRegion(@PathVariable String regionTag) {
         return ResponseEntity.ok(contentItemService.getContentByRegion(regionTag)
+                .stream().map(this::convertToDTO).collect(Collectors.toList()));
+    }
+
+    /** UC10 — Listar por tópico */
+    @GetMapping("/topic/{topicId}")
+    public ResponseEntity<List<ContentItemDTO>> getContentByTopic(@PathVariable String topicId) {
+        return ResponseEntity.ok(contentItemService.getContentByTopic(topicId)
                 .stream().map(this::convertToDTO).collect(Collectors.toList()));
     }
 
@@ -156,6 +165,7 @@ public class ContentItemController {
                 .wordCount(item.getWordCount())
                 .fileUrl(item.getFileUrl())
                 .thumbnailUrl(item.getThumbnailUrl())
+                .topicId(item.getTopic() != null ? item.getTopic().getTopicId() : null)
                 .categories(item.getCategories() != null ? item.getCategories().stream()
                         .map(cat -> CategoryDTO.builder()
                                 .categoryId(cat.getCategoryId())
@@ -180,6 +190,10 @@ public class ContentItemController {
                 .fileUrl(dto.getFileUrl())
                 .thumbnailUrl(dto.getThumbnailUrl())
                 .build();
+
+        if (dto.getTopicId() != null) {
+            topicRepository.findById(dto.getTopicId()).ifPresent(item::setTopic);
+        }
 
         if (dto.getCategories() != null) {
             List<Category> cats = dto.getCategories().stream()

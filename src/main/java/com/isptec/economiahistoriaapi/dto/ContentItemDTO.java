@@ -38,4 +38,5 @@ public class ContentItemDTO {
     private String fileUrl;
     private String thumbnailUrl;
     private java.util.List<CategoryDTO> categories;
+    private String topicId;
 }

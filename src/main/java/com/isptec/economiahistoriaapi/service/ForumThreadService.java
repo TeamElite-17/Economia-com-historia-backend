@@ -24,6 +24,10 @@ public class ForumThreadService {
     public List<ForumThread> getThreadsByModule(String forumModuleId) {
         return forumThreadRepository.findByForumModuleId(forumModuleId);
     }
+
+    public List<ForumThread> getThreadsByTopic(String topicId) {
+        return forumThreadRepository.findByTopicId(topicId);
+    }
     
     public List<ForumThread> getAllThreads() {
         return forumThreadRepository.findAll();

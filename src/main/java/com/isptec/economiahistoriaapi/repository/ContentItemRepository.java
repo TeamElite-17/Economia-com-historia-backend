@@ -15,4 +15,6 @@ public interface ContentItemRepository extends JpaRepository<ContentItem, String
     List<ContentItem> findByRegionTag(String regionTag);
     List<ContentItem> findByStatus(ContentStatus status);
     List<ContentItem> findByAuthorId(String authorId);
+    @Query("SELECT c FROM ContentItem c WHERE c.topic.topicId = :topicId")
+    List<ContentItem> findByTopicTopicId(@Param("topicId") String topicId);
 }

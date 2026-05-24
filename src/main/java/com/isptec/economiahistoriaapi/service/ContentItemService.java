@@ -42,6 +42,10 @@ public class ContentItemService {
         return contentItemRepository.findAll();
     }
 
+    public List<ContentItem> getContentByTopic(String topicId) {
+        return contentItemRepository.findByTopicTopicId(topicId);
+    }
+
     public ContentItem updateContentItem(ContentItem contentItem) {
         return contentItemRepository.save(contentItem);
     }

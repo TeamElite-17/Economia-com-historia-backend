@@ -20,4 +20,5 @@ public class ForumThreadDTO {
     private String createdAt;
     
     private String forumModuleId;
+    private String topicId;
 }

@@ -15,10 +15,13 @@ import java.util.List;
 @AllArgsConstructor
 public class ContentModule extends Module {
     
-    @ElementCollection
-    @CollectionTable(name = "content_module_topics", joinColumns = @JoinColumn(name = "module_id"))
-    @Column(name = "topic")
-    private List<String> topics;
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+        name = "content_module_topics",
+        joinColumns = @JoinColumn(name = "module_id"),
+        inverseJoinColumns = @JoinColumn(name = "topic_id")
+    )
+    private List<Topic> topics;
     
     @OneToMany(mappedBy = "contentModule", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<ContentItem> contentItems;

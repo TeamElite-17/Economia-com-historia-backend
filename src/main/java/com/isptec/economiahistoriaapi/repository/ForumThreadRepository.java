@@ -11,4 +11,7 @@ import java.util.List;
 public interface ForumThreadRepository extends JpaRepository<ForumThread, String> {
     @Query("SELECT t FROM ForumThread t WHERE t.forumModule.moduleId = :moduleId")
     List<ForumThread> findByForumModuleId(@Param("moduleId") String forumModuleId);
+
+    @Query("SELECT t FROM ForumThread t WHERE t.topic.topicId = :topicId")
+    List<ForumThread> findByTopicId(@Param("topicId") String topicId);
 }

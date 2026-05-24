@@ -79,6 +79,10 @@ public class ContentItem {
     @JoinColumn(name = "content_module_id")
     private ContentModule contentModule;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "topic_id")
+    private Topic topic;
+
     /** Categorias temáticas do conteúdo. */
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(

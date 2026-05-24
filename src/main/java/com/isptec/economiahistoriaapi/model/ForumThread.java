@@ -30,6 +30,10 @@ public class ForumThread {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "forum_module_id")
     private ForumModule forumModule;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "topic_id")
+    private Topic topic;
     
     @OneToMany(mappedBy = "forumThread", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Post> posts;

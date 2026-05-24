@@ -3,6 +3,8 @@ package com.isptec.economiahistoriaapi.controller;
 import com.isptec.economiahistoriaapi.dto.ForumThreadDTO;
 import com.isptec.economiahistoriaapi.exception.ResourceNotFoundException;
 import com.isptec.economiahistoriaapi.model.ForumThread;
+import com.isptec.economiahistoriaapi.repository.TopicRepository;
+import com.isptec.economiahistoriaapi.repository.ForumModuleRepository;
 import com.isptec.economiahistoriaapi.service.ForumThreadService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +22,8 @@ import java.util.stream.Collectors;
 public class ForumThreadController {
     
     private final ForumThreadService forumThreadService;
+    private final TopicRepository topicRepository;
+    private final ForumModuleRepository forumModuleRepository;
     
     /**
      * Obter detalhes de uma thread do fórum
@@ -51,6 +55,18 @@ public class ForumThreadController {
     @GetMapping("/module/{moduleId}")
     public ResponseEntity<List<ForumThreadDTO>> getThreadsByModule(@PathVariable String moduleId) {
         List<ForumThreadDTO> threads = forumThreadService.getThreadsByModule(moduleId)
+                .stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+        return new ResponseEntity<>(threads, HttpStatus.OK);
+    }
+    
+    /**
+     * Listar threads por tópico
+     */
+    @GetMapping("/topic/{topicId}")
+    public ResponseEntity<List<ForumThreadDTO>> getThreadsByTopic(@PathVariable String topicId) {
+        List<ForumThreadDTO> threads = forumThreadService.getThreadsByTopic(topicId)
                 .stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
@@ -110,12 +126,25 @@ public class ForumThreadController {
                         thread.getCreatedAt().toString() : null)
                 .forumModuleId(thread.getForumModule() != null ? 
                         thread.getForumModule().getModuleId() : null)
+                .topicId(thread.getTopic() != null ? thread.getTopic().getTopicId() : null)
                 .build();
     }
     
     private ForumThread convertToEntity(ForumThreadDTO threadDTO) {
-        return ForumThread.builder()
+        ForumThread thread = ForumThread.builder()
                 .title(threadDTO.getTitle())
                 .build();
+        
+        if (threadDTO.getForumModuleId() != null) {
+            forumModuleRepository.findById(threadDTO.getForumModuleId())
+                    .ifPresent(thread::setForumModule);
+        }
+        
+        if (threadDTO.getTopicId() != null) {
+            topicRepository.findById(threadDTO.getTopicId())
+                    .ifPresent(thread::setTopic);
+        }
+        
+        return thread;
     }
 }
