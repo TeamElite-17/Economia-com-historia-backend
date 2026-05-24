@@ -6,6 +6,7 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import lombok.*;
 import java.util.Date;
+import java.util.List;
 
 @Entity
 @Table(name = "users")
@@ -45,9 +46,45 @@ public class User {
     @Column(name = "registration_date", nullable = false, updatable = false)
     private Date registrationDate;
 
+    // Relações
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private UserProfile userProfile;
+
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "subscription_id")
+    private Subscription subscription;
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<Notification> notifications;
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<QuizAttempt> quizAttempts;
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<Participation> participations;
+
+    @OneToMany(mappedBy = "author", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<Post> posts;
+
+    @OneToMany(mappedBy = "author", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<Comment> comments;
+
     // Método especial do JPA para preencher a data de registo automaticamente antes de salvar
     @PrePersist
     protected void onCreate() {
         this.registrationDate = new Date();
+    }
+
+    public boolean login(String email, String password) {
+        // Logic for login validation
+        return this.email.equals(email);
+    }
+
+    public void logout() {
+        // Logic for logout
+    }
+
+    public void participate() {
+        // Logic for participation
     }
 }
