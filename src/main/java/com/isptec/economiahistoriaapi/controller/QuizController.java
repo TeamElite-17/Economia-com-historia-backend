@@ -1,9 +1,11 @@
 package com.isptec.economiahistoriaapi.controller;
 
 import com.isptec.economiahistoriaapi.dto.QuizDTO;
+import com.isptec.economiahistoriaapi.enums.ContentStatus;
 import com.isptec.economiahistoriaapi.exception.ResourceNotFoundException;
 import com.isptec.economiahistoriaapi.model.Quiz;
 import com.isptec.economiahistoriaapi.service.QuizService;
+import org.springframework.security.access.prepost.PreAuthorize;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -59,8 +61,10 @@ public class QuizController {
      * Criar novo quiz
      */
     @PostMapping
+    @PreAuthorize("hasAnyRole('ESCRITOR', 'ADMIN', 'SUPERADMIN')")
     public ResponseEntity<QuizDTO> createQuiz(@Valid @RequestBody QuizDTO quizDTO) {
         Quiz quiz = convertToEntity(quizDTO);
+        quiz.setStatus(ContentStatus.PUBLISHED);
         Quiz savedQuiz = quizService.createQuiz(quiz);
         return new ResponseEntity<>(convertToDTO(savedQuiz), HttpStatus.CREATED);
     }
@@ -88,6 +92,7 @@ public class QuizController {
      * Deletar quiz
      */
     @DeleteMapping("/{quizId}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPERADMIN')")
     public ResponseEntity<Void> deleteQuiz(@PathVariable String quizId) {
         if (!quizService.getQuizById(quizId).isPresent()) {
             throw new ResourceNotFoundException(

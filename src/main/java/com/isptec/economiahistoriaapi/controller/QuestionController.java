@@ -1,8 +1,14 @@
 package com.isptec.economiahistoriaapi.controller;
 
+import com.isptec.economiahistoriaapi.dto.AnswerOptionDTO;
 import com.isptec.economiahistoriaapi.dto.QuestionDTO;
+import com.isptec.economiahistoriaapi.enums.QuestionType;
 import com.isptec.economiahistoriaapi.exception.ResourceNotFoundException;
+import com.isptec.economiahistoriaapi.model.AnswerOption;
 import com.isptec.economiahistoriaapi.model.Question;
+import com.isptec.economiahistoriaapi.model.Quiz;
+import com.isptec.economiahistoriaapi.repository.AnswerOptionRepository;
+import com.isptec.economiahistoriaapi.repository.QuizRepository;
 import com.isptec.economiahistoriaapi.service.QuestionService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -22,6 +28,8 @@ import java.util.stream.Collectors;
 public class QuestionController {
 
     private final QuestionService questionService;
+    private final AnswerOptionRepository answerOptionRepository;
+    private final QuizRepository quizRepository;
 
     /**
      * UC10/UC11 — Listar perguntas de um quiz (todos os autenticados)
@@ -49,10 +57,39 @@ public class QuestionController {
      * UC07/UC09 — Criar pergunta de quiz (Escritor)
      */
     @PostMapping
-    @PreAuthorize("hasRole('ESCRITOR')")
+    @PreAuthorize("hasAnyRole('ESCRITOR', 'ADMIN', 'SUPERADMIN')")
     public ResponseEntity<QuestionDTO> createQuestion(@Valid @RequestBody QuestionDTO dto) {
-        Question question = convertToEntity(dto);
-        return new ResponseEntity<>(convertToDTO(questionService.createQuestion(question)), HttpStatus.CREATED);
+        if (dto.getQuizId() == null || dto.getQuizId().isBlank()) {
+            throw new ResourceNotFoundException("O ID do quiz é obrigatório");
+        }
+        Quiz quiz = quizRepository.findById(dto.getQuizId())
+                .orElseThrow(() -> new ResourceNotFoundException("Quiz não encontrado: " + dto.getQuizId()));
+
+        QuestionType type = QuestionType.SINGLE_CHOICE;
+        if (dto.getType() != null) {
+            type = QuestionType.valueOf(dto.getType().toUpperCase());
+        }
+
+        Question question = Question.builder()
+                .text(dto.getText())
+                .type(type)
+                .points(dto.getPoints() != null ? dto.getPoints() : 10)
+                .quiz(quiz)
+                .build();
+
+        Question saved = questionService.createQuestion(question);
+
+        if (dto.getAnswerOptions() != null) {
+            for (AnswerOptionDTO optDto : dto.getAnswerOptions()) {
+                answerOptionRepository.save(AnswerOption.builder()
+                        .text(optDto.getText())
+                        .correct(Boolean.TRUE.equals(optDto.getCorrect()))
+                        .question(saved)
+                        .build());
+            }
+        }
+
+        return new ResponseEntity<>(convertToDTO(saved), HttpStatus.CREATED);
     }
 
     /**
@@ -87,12 +124,22 @@ public class QuestionController {
     // ========== Conversão ==========
 
     private QuestionDTO convertToDTO(Question q) {
+        List<AnswerOptionDTO> options = answerOptionRepository.findByQuestionId(q.getQuestionId())
+                .stream()
+                .map(opt -> AnswerOptionDTO.builder()
+                        .optionId(opt.getOptionId())
+                        .text(opt.getText())
+                        .correct(opt.isCorrect())
+                        .build())
+                .collect(Collectors.toList());
+
         return QuestionDTO.builder()
                 .questionId(q.getQuestionId())
                 .text(q.getText())
                 .type(q.getType() != null ? q.getType().toString() : null)
                 .points(q.getPoints())
                 .quizId(q.getQuiz() != null ? q.getQuiz().getQuizId() : null)
+                .answerOptions(options)
                 .build();
     }
 

@@ -13,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -25,6 +26,7 @@ import java.util.stream.Collectors;
 public class AdminController {
 
     private final UserService userService;
+    private final PasswordEncoder passwordEncoder;
 
     /**
      * UC04/UC06 — Listar todos os utilizadores (Admin, Superadmin)
@@ -54,7 +56,7 @@ public class AdminController {
      * UC04 — Criar conta administrativa (Admin, Aprovador) — apenas Superadmin
      */
     @PostMapping("/users")
-    @PreAuthorize("hasRole('SUPERADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPERADMIN')")
     public ResponseEntity<UserDTO> createAdminUser(@Valid @RequestBody UserDTO dto) {
         if (dto.getPassword() == null || dto.getPassword().isBlank()) {
             throw new BadRequestException("A palavra-passe é obrigatória");
@@ -62,7 +64,7 @@ public class AdminController {
         User user = User.builder()
                 .name(dto.getName())
                 .email(dto.getEmail())
-                .passwordHash(dto.getPassword()) // encoded in service layer ideally
+                .passwordHash(passwordEncoder.encode(dto.getPassword()))
                 .role(UserRole.valueOf(dto.getRole()))
                 .preferredLanguage(dto.getPreferredLanguage())
                 .build();

@@ -7,6 +7,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -25,4 +27,6 @@ public class QuestionDTO {
     private Integer points;
     
     private String quizId;
+
+    private List<AnswerOptionDTO> answerOptions;
 }

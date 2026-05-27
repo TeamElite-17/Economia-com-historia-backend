@@ -3,6 +3,8 @@ package com.isptec.economiahistoriaapi.controller;
 import com.isptec.economiahistoriaapi.dto.UserDTO;
 import com.isptec.economiahistoriaapi.exception.ResourceNotFoundException;
 import com.isptec.economiahistoriaapi.model.User;
+import com.isptec.economiahistoriaapi.model.UserCollection;
+import com.isptec.economiahistoriaapi.repository.UserCollectionRepository;
 import com.isptec.economiahistoriaapi.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -10,6 +12,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @RestController
@@ -18,6 +21,7 @@ import java.util.stream.Collectors;
 public class UserController {
     
     private final UserService userService;
+    private final UserCollectionRepository userCollectionRepository;
     
     /**
      * Obter detalhes de um utilizador
@@ -119,5 +123,70 @@ public class UserController {
                 .passwordHash(userDTO.getPassword())
                 .preferredLanguage(userDTO.getPreferredLanguage())
                 .build();
+    }
+
+    // ========== Coleções do Utilizador ==========
+
+    @GetMapping("/{userId}/history")
+    public ResponseEntity<List<Map<String, Object>>> getHistory(@PathVariable String userId) {
+        return ResponseEntity.ok(toCollectionResponse(userCollectionRepository.findByUserIdAndItemType(userId, "HISTORY")));
+    }
+
+    @PostMapping("/{userId}/history")
+    public ResponseEntity<Map<String, Object>> addHistory(@PathVariable String userId, @RequestBody Map<String, String> body) {
+        return saveCollectionItem(userId, "HISTORY", body.get("itemId"));
+    }
+
+    @GetMapping("/{userId}/saved")
+    public ResponseEntity<List<Map<String, Object>>> getSaved(@PathVariable String userId) {
+        return ResponseEntity.ok(toCollectionResponse(userCollectionRepository.findByUserIdAndItemType(userId, "SAVED")));
+    }
+
+    @PostMapping("/{userId}/saved")
+    public ResponseEntity<Map<String, Object>> addSaved(@PathVariable String userId, @RequestBody Map<String, String> body) {
+        return saveCollectionItem(userId, "SAVED", body.get("itemId"));
+    }
+
+    @DeleteMapping("/{userId}/saved/{itemId}")
+    public ResponseEntity<Void> removeSaved(@PathVariable String userId, @PathVariable String itemId) {
+        userCollectionRepository.deleteByUserIdAndItemTypeAndItemId(userId, "SAVED", itemId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/{userId}/subscriptions")
+    public ResponseEntity<List<Map<String, Object>>> getSubscriptions(@PathVariable String userId) {
+        return ResponseEntity.ok(toCollectionResponse(userCollectionRepository.findByUserIdAndItemType(userId, "SUBSCRIPTION")));
+    }
+
+    @PostMapping("/{userId}/subscriptions")
+    public ResponseEntity<Map<String, Object>> addSubscription(@PathVariable String userId, @RequestBody Map<String, String> body) {
+        return saveCollectionItem(userId, "SUBSCRIPTION", body.get("itemId"));
+    }
+
+    @DeleteMapping("/{userId}/subscriptions/{itemId}")
+    public ResponseEntity<Void> removeSubscription(@PathVariable String userId, @PathVariable String itemId) {
+        userCollectionRepository.deleteByUserIdAndItemTypeAndItemId(userId, "SUBSCRIPTION", itemId);
+        return ResponseEntity.noContent().build();
+    }
+
+    private ResponseEntity<Map<String, Object>> saveCollectionItem(String userId, String itemType, String itemId) {
+        if (itemId == null || itemId.isBlank()) {
+            return ResponseEntity.badRequest().build();
+        }
+        UserCollection item = userCollectionRepository
+                .findByUserIdAndItemTypeAndItemId(userId, itemType, itemId)
+                .orElseGet(() -> userCollectionRepository.save(
+                        UserCollection.builder().userId(userId).itemType(itemType).itemId(itemId).build()));
+        return ResponseEntity.status(HttpStatus.CREATED).body(
+                Map.of("collectionId", item.getCollectionId(), "userId", userId, "itemType", itemType, "itemId", itemId));
+    }
+
+    private List<Map<String, Object>> toCollectionResponse(List<UserCollection> items) {
+        return items.stream().map(i -> Map.<String, Object>of(
+                "collectionId", i.getCollectionId(),
+                "userId", i.getUserId(),
+                "itemType", i.getItemType(),
+                "itemId", i.getItemId()
+        )).collect(Collectors.toList());
     }
 }

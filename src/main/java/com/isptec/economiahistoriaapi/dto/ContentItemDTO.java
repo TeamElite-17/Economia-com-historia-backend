@@ -39,4 +39,7 @@ public class ContentItemDTO {
     private String thumbnailUrl;
     private java.util.List<CategoryDTO> categories;
     private String topicId;
+
+    /** Opcional: PUBLISHED, DRAFT, UNDER_REVIEW, REJECTED */
+    private String status;
 }

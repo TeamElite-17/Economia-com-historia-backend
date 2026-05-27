@@ -23,42 +23,66 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
 
     private final JwtAuthFilter jwtAuthFilter;
+    private final CorsConfig corsConfig;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         return http
                 .csrf(AbstractHttpConfigurer::disable)
+                // Ativa CORS no Spring Security filter chain usando o bean CorsConfigurationSource
+                .cors(cors -> cors.configurationSource(corsConfig.corsConfigurationSource()))
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        // Auth - público (login, register, logout)
+                        // Auth - público
                         .requestMatchers("/v1/auth/**").permitAll()
                         // Swagger - público
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()
                         // Actuator - público
                         .requestMatchers("/actuator/**").permitAll()
 
-                        // Categorias e Tópicos - GET público
+                        // Categorias, Tópicos, Utilizadores - GET público
                         .requestMatchers(HttpMethod.GET, "/v1/categories/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/v1/topics/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/v1/users/**").permitAll()
 
-                        // === Gestão de utilizadores (UC04-UC06) ===
-                        .requestMatchers("/v1/admin/**").hasAnyRole("SUPERADMIN", "ADMIN")
+                        // Conteúdos - GET público, escrita autenticada
+                        .requestMatchers(HttpMethod.GET, "/v1/content-items/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/v1/content-items").authenticated()
+                        .requestMatchers(HttpMethod.PUT, "/v1/content-items/**").authenticated()
+                        .requestMatchers(HttpMethod.DELETE, "/v1/content-items/**").hasAnyRole("ADMIN", "SUPERADMIN")
+                        .requestMatchers(HttpMethod.PATCH, "/v1/content-items/**").authenticated()
 
-                        // === Fluxo editorial (UC07-UC09) ===
-                        .requestMatchers(HttpMethod.POST, "/v1/content").hasRole("ESCRITOR")
-                        .requestMatchers(HttpMethod.PATCH, "/v1/content/*/submit").hasAnyRole("ESCRITOR")
-                        .requestMatchers(HttpMethod.PATCH, "/v1/content/*/approve").hasRole("APROVADOR")
-                        .requestMatchers(HttpMethod.PATCH, "/v1/content/*/reject").hasRole("APROVADOR")
-                        .requestMatchers("/v1/content/pending").hasAnyRole("REVISOR", "APROVADOR")
+                        // Quiz - GET público, escrita autenticada
+                        .requestMatchers(HttpMethod.GET, "/v1/quizzes/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/v1/questions/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/v1/quizzes").authenticated()
+                        .requestMatchers(HttpMethod.PUT, "/v1/quizzes/**").authenticated()
+                        .requestMatchers(HttpMethod.DELETE, "/v1/quizzes/**").hasAnyRole("ADMIN", "SUPERADMIN")
+                        .requestMatchers(HttpMethod.POST, "/v1/questions").authenticated()
+                        .requestMatchers(HttpMethod.POST, "/v1/quiz-attempts").authenticated()
 
-                        // === Quiz - só Escritor cria, só Estudante realiza (UC11) ===
-                        .requestMatchers(HttpMethod.POST, "/v1/quizzes").hasRole("ESCRITOR")
-                        .requestMatchers(HttpMethod.POST, "/v1/quiz-attempts").hasRole("ESTUDANTE")
-
-                        // === Fórum - moderação só Admin/Superadmin (UC15) ===
+                        // Fórum - GET público, escrita autenticada
+                        .requestMatchers(HttpMethod.GET, "/v1/forum-threads/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/v1/posts/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/v1/comments/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/v1/forum-threads").authenticated()
+                        .requestMatchers(HttpMethod.POST, "/v1/posts").authenticated()
+                        .requestMatchers(HttpMethod.POST, "/v1/comments").authenticated()
                         .requestMatchers(HttpMethod.DELETE, "/v1/forum-threads/**").hasAnyRole("ADMIN", "SUPERADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/v1/posts/**").hasAnyRole("ADMIN", "SUPERADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/v1/comments/**").hasAnyRole("ADMIN", "SUPERADMIN")
+
+                        // Perfis - GET público
+                        .requestMatchers(HttpMethod.GET, "/v1/profiles/**").permitAll()
+
+                        // Ficheiros multimédia - download público; upload autenticado (roles no controller)
+                        .requestMatchers(HttpMethod.GET, "/v1/files/download/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/v1/files/info/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/v1/files/upload/**").authenticated()
+                        .requestMatchers(HttpMethod.DELETE, "/v1/files/**").hasAnyRole("ADMIN", "SUPERADMIN")
+
+                        // Admin - apenas ADMIN e SUPERADMIN
+                        .requestMatchers("/v1/admin/**").hasAnyRole("ADMIN", "SUPERADMIN")
 
                         // Qualquer outro endpoint requer autenticação
                         .anyRequest().authenticated()

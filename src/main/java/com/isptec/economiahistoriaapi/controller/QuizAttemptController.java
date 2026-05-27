@@ -2,7 +2,11 @@ package com.isptec.economiahistoriaapi.controller;
 
 import com.isptec.economiahistoriaapi.dto.QuizAttemptDTO;
 import com.isptec.economiahistoriaapi.exception.ResourceNotFoundException;
+import com.isptec.economiahistoriaapi.model.Quiz;
 import com.isptec.economiahistoriaapi.model.QuizAttempt;
+import com.isptec.economiahistoriaapi.model.User;
+import com.isptec.economiahistoriaapi.repository.QuizRepository;
+import com.isptec.economiahistoriaapi.repository.UserRepository;
 import com.isptec.economiahistoriaapi.service.QuizAttemptService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -21,12 +25,13 @@ import java.util.stream.Collectors;
 public class QuizAttemptController {
 
     private final QuizAttemptService quizAttemptService;
+    private final QuizRepository quizRepository;
+    private final UserRepository userRepository;
 
     /**
-     * UC11 — Realizar Quiz / submeter tentativa (apenas Estudante)
+     * UC11 — Realizar Quiz / submeter tentativa (utilizador autenticado)
      */
     @PostMapping
-    @PreAuthorize("hasRole('ESTUDANTE')")
     public ResponseEntity<QuizAttemptDTO> submitAttempt(@RequestBody QuizAttemptDTO dto) {
         QuizAttempt attempt = convertToEntity(dto);
         attempt.submit();
@@ -82,9 +87,16 @@ public class QuizAttemptController {
     }
 
     private QuizAttempt convertToEntity(QuizAttemptDTO dto) {
+        Quiz quiz = quizRepository.findById(dto.getQuizId())
+                .orElseThrow(() -> new ResourceNotFoundException("Quiz não encontrado: " + dto.getQuizId()));
+        User user = userRepository.findById(dto.getUserId())
+                .orElseThrow(() -> new ResourceNotFoundException("Utilizador não encontrado: " + dto.getUserId()));
+
         return QuizAttempt.builder()
                 .score(dto.getScore() != null ? dto.getScore() : 0)
                 .completed(Boolean.TRUE.equals(dto.getCompleted()))
+                .quiz(quiz)
+                .user(user)
                 .build();
     }
 }

@@ -3,7 +3,9 @@ package com.isptec.economiahistoriaapi.controller;
 import com.isptec.economiahistoriaapi.dto.PostDTO;
 import com.isptec.economiahistoriaapi.exception.ResourceNotFoundException;
 import com.isptec.economiahistoriaapi.model.Post;
+import com.isptec.economiahistoriaapi.service.ForumThreadService;
 import com.isptec.economiahistoriaapi.service.PostService;
+import com.isptec.economiahistoriaapi.service.UserService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +24,8 @@ import java.util.stream.Collectors;
 public class PostController {
 
     private final PostService postService;
+    private final ForumThreadService forumThreadService;
+    private final UserService userService;
 
     /**
      * UC13/UC14 — Listar posts de uma thread (todos os autenticados)
@@ -95,9 +99,21 @@ public class PostController {
     }
 
     private Post convertToEntity(PostDTO dto) {
-        return Post.builder()
+        Post post = Post.builder()
                 .postId(dto.getPostId())
                 .content(dto.getContent())
                 .build();
+
+        if (dto.getThreadId() != null) {
+            forumThreadService.getThreadById(dto.getThreadId())
+                    .ifPresent(post::setForumThread);
+        }
+
+        if (dto.getUserId() != null) {
+            userService.getUserById(dto.getUserId())
+                    .ifPresent(post::setAuthor);
+        }
+
+        return post;
     }
 }

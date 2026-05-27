@@ -20,6 +20,7 @@ import jakarta.validation.Valid;
 import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
+// status field support in DTO
 
 @RestController
 @RequestMapping("/v1/content-items")
@@ -79,18 +80,24 @@ public class ContentItemController {
         return ResponseEntity.ok(items);
     }
 
-    /** UC07 — Criar rascunho de conteúdo (Escritor) */
+    /** Criar conteúdo (qualquer utilizador autenticado) — publicado diretamente pelo admin */
     @PostMapping
-    @PreAuthorize("hasRole('ESCRITOR')")
-    public ResponseEntity<ContentItemDTO> createDraft(@Valid @RequestBody ContentItemDTO dto) {
+    public ResponseEntity<ContentItemDTO> createContent(@Valid @RequestBody ContentItemDTO dto) {
         ContentItem item = convertToEntity(dto);
-        item.setStatus(ContentStatus.DRAFT);
+        // Se o status vier no DTO usa-o, caso contrário publica diretamente
+        ContentStatus status = (dto.getStatus() != null)
+                ? ContentStatus.valueOf(dto.getStatus().toUpperCase())
+                : ContentStatus.PUBLISHED;
+        item.setStatus(status);
+        if (status == ContentStatus.PUBLISHED) {
+            item.setPublishedAt(new java.util.Date());
+        }
         return new ResponseEntity<>(convertToDTO(contentItemService.createContentItem(item)), HttpStatus.CREATED);
     }
 
     /** UC08 — Editar conteúdo (Escritor edita os seus; Revisor edita qualquer rascunho) */
     @PutMapping("/{contentId}")
-    @PreAuthorize("hasAnyRole('ESCRITOR', 'REVISOR', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('ESCRITOR', 'REVISOR', 'ADMIN', 'SUPERADMIN')")
     public ResponseEntity<ContentItemDTO> updateContent(
             @PathVariable String contentId,
             @Valid @RequestBody ContentItemDTO dto) {
@@ -166,6 +173,7 @@ public class ContentItemController {
                 .fileUrl(item.getFileUrl())
                 .thumbnailUrl(item.getThumbnailUrl())
                 .topicId(item.getTopic() != null ? item.getTopic().getTopicId() : null)
+                .status(item.getStatus() != null ? item.getStatus().toString() : null)
                 .categories(item.getCategories() != null ? item.getCategories().stream()
                         .map(cat -> CategoryDTO.builder()
                                 .categoryId(cat.getCategoryId())
