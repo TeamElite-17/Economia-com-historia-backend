@@ -29,6 +29,12 @@ public class ContentItemDTO {
     
     private String publishedAt;
     
+    private String reviewedAt;
+    
+    private String approverId;
+
+    private String approvadoEm;
+    
     private String regionId;
     
     private String contentModuleId;

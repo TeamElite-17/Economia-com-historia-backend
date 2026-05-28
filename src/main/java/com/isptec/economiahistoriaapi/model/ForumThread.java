@@ -34,6 +34,10 @@ public class ForumThread {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "topic_id")
     private Topic topic;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "created_by_user_id")
+    private User createdByUser;
     
     @OneToMany(mappedBy = "forumThread", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Post> posts;

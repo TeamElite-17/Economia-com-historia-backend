@@ -47,6 +47,16 @@ public class ContentItem {
     @Column(name = "author_id", length = 36)
     private String authorId;
 
+    @Column(name = "reviewer_id", length = 36)
+    private String reviewerId;
+
+    @Temporal(TemporalType.TIMESTAMP)
+    @Column(name = "reviewed_at")
+    private Date reviewedAt;
+
+    @Column(name = "approver_id", length = 36)
+    private String approverId;
+
     @Temporal(TemporalType.TIMESTAMP)
     @Column(name = "published_at")
     private Date publishedAt;

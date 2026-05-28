@@ -15,6 +15,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
 import java.util.Date;
@@ -80,6 +82,15 @@ public class ContentItemController {
         return ResponseEntity.ok(items);
     }
 
+    /** Listar conteúdos aprovados aguardando publicação (Aprovador) */
+    @GetMapping("/ready-to-publish")
+    @PreAuthorize("hasAnyRole('APROVADOR', 'ADMIN', 'SUPERADMIN')")
+    public ResponseEntity<List<ContentItemDTO>> getReadyToPublish() {
+        List<ContentItemDTO> items = contentItemService.getContentByStatus(ContentStatus.APPROVED)
+                .stream().map(this::convertToDTO).collect(Collectors.toList());
+        return ResponseEntity.ok(items);
+    }
+
     /** Criar conteúdo (qualquer utilizador autenticado) — publicado diretamente pelo admin */
     @PostMapping
     public ResponseEntity<ContentItemDTO> createContent(@Valid @RequestBody ContentItemDTO dto) {
@@ -121,6 +132,30 @@ public class ContentItemController {
         return ResponseEntity.ok(convertToDTO(contentItemService.updateContentItem(item)));
     }
 
+    /** UC08 — Revisor marca como pronto para aprovação (Revisor) */
+    @PatchMapping("/{contentId}/ready-for-approval")
+    @PreAuthorize("hasRole('REVISOR')")
+    public ResponseEntity<ContentItemDTO> readyForApproval(@PathVariable String contentId) {
+        ContentItem item = contentItemService.getContentItemById(contentId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Conteúdo não encontrado com ID: " + contentId));
+        item.setStatus(ContentStatus.APPROVED);
+        item.setReviewedAt(new Date());
+        return ResponseEntity.ok(convertToDTO(contentItemService.updateContentItem(item)));
+    }
+
+    /** UC08 — Revisor rejeita conteúdo (Revisor) */
+    @PatchMapping("/{contentId}/review-reject")
+    @PreAuthorize("hasRole('REVISOR')")
+    public ResponseEntity<ContentItemDTO> rejectAsRevisor(@PathVariable String contentId) {
+        ContentItem item = contentItemService.getContentItemById(contentId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Conteúdo não encontrado com ID: " + contentId));
+        item.setStatus(ContentStatus.REJECTED);
+        item.setReviewedAt(new Date());
+        return ResponseEntity.ok(convertToDTO(contentItemService.updateContentItem(item)));
+    }
+
     /** UC09 — Aprovar e publicar conteúdo (Aprovador) */
     @PatchMapping("/{contentId}/approve")
     @PreAuthorize("hasRole('APROVADOR')")
@@ -130,6 +165,7 @@ public class ContentItemController {
                         "Conteúdo não encontrado com ID: " + contentId));
         item.setStatus(ContentStatus.PUBLISHED);
         item.setPublishedAt(new Date());
+        item.setApproverId(getLoggedInUserId());
         return ResponseEntity.ok(convertToDTO(contentItemService.updateContentItem(item)));
     }
 
@@ -166,6 +202,8 @@ public class ContentItemController {
                 .sourceUrl(item.getSourceUrl())
                 .regionTag(item.getRegionTag())
                 .publishedAt(item.getPublishedAt() != null ? item.getPublishedAt().toString() : null)
+                .reviewedAt(item.getReviewedAt() != null ? item.getReviewedAt().toString() : null)
+                .approverId(item.getApproverId())
                 .regionId(item.getRegionIndicator() != null ? item.getRegionIndicator().getRegionId() : null)
                 .contentModuleId(item.getContentModule() != null ? item.getContentModule().getModuleId() : null)
                 .durationSeconds(item.getDurationSeconds())
@@ -218,5 +256,10 @@ public class ContentItemController {
             item.setCategories(cats);
         }
         return item;
+    }
+
+    private String getLoggedInUserId() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        return authentication != null ? authentication.getName() : null;
     }
 }

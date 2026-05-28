@@ -24,6 +24,10 @@ public class CommentService {
     public List<Comment> getCommentsByPost(String postId) {
         return commentRepository.findByPostId(postId);
     }
+
+    public List<Comment> getCommentsByContentItem(String contentItemId) {
+        return commentRepository.findByContentItemId(contentItemId);
+    }
     
     public List<Comment> getCommentsByUser(String userId) {
         return commentRepository.findByAuthorId(userId);
@@ -41,3 +45,4 @@ public class CommentService {
         commentRepository.deleteById(commentId);
     }
 }
+

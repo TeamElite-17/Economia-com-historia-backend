@@ -47,6 +47,13 @@ public class SecurityConfig {
 
                         // Conteúdos - GET público, escrita autenticada
                         .requestMatchers(HttpMethod.GET, "/v1/content-items/**").permitAll()
+                        // Visualizações e partilhas podem ser registadas por qualquer um
+                        .requestMatchers(HttpMethod.POST, "/v1/content-items/*/view").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/v1/content-items/*/share").permitAll()
+                        // Stats podem ser lidas por qualquer um (likedByCurrentUser será null se não autenticado)
+                        .requestMatchers(HttpMethod.GET, "/v1/content-items/*/stats").permitAll()
+                        // Like/Unlike requer autenticação
+                        .requestMatchers(HttpMethod.POST, "/v1/content-items/*/like").authenticated()
                         .requestMatchers(HttpMethod.POST, "/v1/content-items").authenticated()
                         .requestMatchers(HttpMethod.PUT, "/v1/content-items/**").authenticated()
                         .requestMatchers(HttpMethod.DELETE, "/v1/content-items/**").hasAnyRole("ADMIN", "SUPERADMIN")
@@ -67,6 +74,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/v1/comments/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/v1/forum-threads").authenticated()
                         .requestMatchers(HttpMethod.POST, "/v1/posts").authenticated()
+                        .requestMatchers(HttpMethod.POST, "/v1/posts/*/like").authenticated()
                         .requestMatchers(HttpMethod.POST, "/v1/comments").authenticated()
                         .requestMatchers(HttpMethod.DELETE, "/v1/forum-threads/**").hasAnyRole("ADMIN", "SUPERADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/v1/posts/**").hasAnyRole("ADMIN", "SUPERADMIN")

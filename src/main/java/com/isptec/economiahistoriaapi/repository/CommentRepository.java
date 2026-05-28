@@ -10,9 +10,13 @@ import java.util.List;
 @Repository
 public interface CommentRepository extends JpaRepository<Comment, String> {
 
-    @Query("SELECT c FROM Comment c WHERE c.post.postId = :postId")
+    @Query("SELECT c FROM Comment c LEFT JOIN FETCH c.author WHERE c.post.postId = :postId ORDER BY c.commentedAt ASC")
     List<Comment> findByPostId(@Param("postId") String postId);
 
-    @Query("SELECT c FROM Comment c WHERE c.author.userId = :userId")
+    @Query("SELECT c FROM Comment c LEFT JOIN FETCH c.author WHERE c.author.userId = :userId ORDER BY c.commentedAt DESC")
     List<Comment> findByAuthorId(@Param("userId") String userId);
+
+    @Query("SELECT c FROM Comment c LEFT JOIN FETCH c.author WHERE c.contentItem.contentId = :contentItemId ORDER BY c.commentedAt ASC")
+    List<Comment> findByContentItemId(@Param("contentItemId") String contentItemId);
 }
+
