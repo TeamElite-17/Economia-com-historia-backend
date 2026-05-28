@@ -17,9 +17,8 @@ public class CorsConfig {
 
         // Origens do frontend em desenvolvimento e preview
         config.setAllowedOriginPatterns(List.of(
-            "http://localhost:*",
-            "http://127.0.0.1:*"
-        ));
+                "http://localhost:*",
+                "http://127.0.0.1:*"));
 
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"));
 
@@ -28,8 +27,7 @@ public class CorsConfig {
                 "Content-Type",
                 "Accept",
                 "Origin",
-                "X-Requested-With"
-        ));
+                "X-Requested-With"));
 
         // Necessário para enviar o token JWT no header Authorization
         config.setAllowCredentials(true);
