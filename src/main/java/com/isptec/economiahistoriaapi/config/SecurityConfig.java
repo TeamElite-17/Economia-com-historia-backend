@@ -33,6 +33,9 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfig.corsConfigurationSource()))
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
+                    // Preflight CORS
+                    .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+
                         // Auth - público
                         .requestMatchers("/v1/auth/**").permitAll()
                         // Swagger - público
