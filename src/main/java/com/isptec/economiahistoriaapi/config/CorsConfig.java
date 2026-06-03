@@ -18,6 +18,9 @@ public class CorsConfig {
         // Origens do frontend em desenvolvimento e preview
         config.setAllowedOriginPatterns(List.of(
                 "http://localhost:*",
+                "http://0.0.0.0:*",
+                "http://10.79.151.28:*",
+                "http://10.79.151.59:*",
                 "http://127.0.0.1:*"));
 
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"));

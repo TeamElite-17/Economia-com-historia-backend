@@ -33,5 +33,11 @@ public class ForumThreadDTO {
 
     /** Número de posts na thread — preenchido na resposta */
     private Integer postCount;
+
+    /** Total de gostos em todos os posts da thread */
+    private Long likeCount;
+
+    /** Número de visualizações da thread */
+    private Long viewCount;
 }
 

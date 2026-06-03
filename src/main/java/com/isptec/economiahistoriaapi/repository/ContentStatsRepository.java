@@ -26,4 +26,8 @@ public interface ContentStatsRepository extends JpaRepository<ContentStats, Stri
     @Modifying
     @Query("UPDATE ContentStats cs SET cs.commentCount = cs.commentCount + 1, cs.lastUpdated = CURRENT_TIMESTAMP WHERE cs.contentItem.contentId = :contentId")
     void incrementComments(@Param("contentId") String contentId);
+
+    @Modifying
+    @Query("DELETE FROM ContentStats cs WHERE cs.contentItem.contentId = :contentId")
+    void deleteByContentItemId(@Param("contentId") String contentId);
 }

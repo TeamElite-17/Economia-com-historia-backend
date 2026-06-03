@@ -5,6 +5,8 @@ import com.isptec.economiahistoriaapi.exception.ResourceNotFoundException;
 import com.isptec.economiahistoriaapi.model.ForumThread;
 import com.isptec.economiahistoriaapi.model.User;
 import com.isptec.economiahistoriaapi.repository.ForumModuleRepository;
+import com.isptec.economiahistoriaapi.repository.ForumThreadRepository;
+import com.isptec.economiahistoriaapi.repository.PostLikeRepository;
 import com.isptec.economiahistoriaapi.repository.PostRepository;
 import com.isptec.economiahistoriaapi.repository.TopicRepository;
 import com.isptec.economiahistoriaapi.repository.UserRepository;
@@ -34,6 +36,8 @@ public class ForumThreadController {
     private final ForumModuleRepository forumModuleRepository;
     private final UserRepository userRepository;
     private final PostRepository postRepository;
+    private final PostLikeRepository postLikeRepository;
+    private final ForumThreadRepository forumThreadRepository;
 
     /** Obter detalhe de uma thread */
     @GetMapping("/{threadId}")
@@ -107,7 +111,16 @@ public class ForumThreadController {
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
-    // ========== Conversão ==========
+    /** Registar visualização de uma thread (incrementa view_count) */
+    @PostMapping("/{threadId}/view")
+    public ResponseEntity<Void> registerView(@PathVariable String threadId) {
+        forumThreadRepository.findById(threadId).ifPresent(thread -> {
+            thread.setViewCount(thread.getViewCount() + 1);
+            forumThreadRepository.save(thread);
+        });
+        return ResponseEntity.ok().build();
+    }
+
 
     private ForumThreadDTO convertToDTO(ForumThread thread) {
         String creatorId = null;
@@ -124,6 +137,12 @@ public class ForumThreadController {
 
         int postCount = postRepository.countByForumThreadId(thread.getThreadId()).intValue();
 
+        // Soma dos likes de todos os posts desta thread
+        long likeCount = postRepository.findByForumThreadId(thread.getThreadId())
+                .stream()
+                .mapToLong(p -> postLikeRepository.countByPostId(p.getPostId()))
+                .sum();
+
         return ForumThreadDTO.builder()
                 .threadId(thread.getThreadId())
                 .title(thread.getTitle())
@@ -134,6 +153,8 @@ public class ForumThreadController {
                 .createdByUserName(creatorName)
                 .createdByUserAvatar(creatorAvatar)
                 .postCount(postCount)
+                .likeCount(likeCount)
+                .viewCount(thread.getViewCount())
                 .build();
     }
 

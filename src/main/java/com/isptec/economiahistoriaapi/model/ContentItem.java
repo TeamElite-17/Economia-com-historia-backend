@@ -33,7 +33,7 @@ public class ContentItem {
     @Column(nullable = false)
     private MediaType mediaType;
     
-    @Column(length = 500)
+    @Column(columnDefinition = "TEXT")
     private String sourceUrl;
     
     @Column(length = 100)
@@ -78,6 +78,11 @@ public class ContentItem {
     /** URL da imagem de capa/thumbnail (VIDEO, IMAGE). */
     @Column(name = "thumbnail_url", length = 1000)
     private String thumbnailUrl;
+
+    /** Marca conteúdo como "Jindungo" (conteúdo comunitário em destaque). */
+    @Column(name = "is_jindungo")
+    @Builder.Default
+    private Boolean isJindungo = false;
 
     // ===== Relações =====
 

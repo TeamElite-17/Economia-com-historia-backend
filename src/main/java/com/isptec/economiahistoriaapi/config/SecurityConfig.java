@@ -65,6 +65,8 @@ public class SecurityConfig {
                         // Quiz - GET público, escrita autenticada
                         .requestMatchers(HttpMethod.GET, "/v1/quizzes/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/v1/questions/**").permitAll()
+                        // Ranking público (sem autenticação)
+                        .requestMatchers(HttpMethod.GET, "/v1/quiz-attempts/ranking").permitAll()
                         .requestMatchers(HttpMethod.POST, "/v1/quizzes").authenticated()
                         .requestMatchers(HttpMethod.PUT, "/v1/quizzes/**").authenticated()
                         .requestMatchers(HttpMethod.DELETE, "/v1/quizzes/**").hasAnyRole("ADMIN", "SUPERADMIN")
@@ -75,6 +77,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/v1/forum-threads/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/v1/posts/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/v1/comments/**").permitAll()
+                        // Visualizações podem ser registadas por qualquer um (sem login)
+                        .requestMatchers(HttpMethod.POST, "/v1/forum-threads/*/view").permitAll()
                         .requestMatchers(HttpMethod.POST, "/v1/forum-threads").authenticated()
                         .requestMatchers(HttpMethod.POST, "/v1/posts").authenticated()
                         .requestMatchers(HttpMethod.POST, "/v1/posts/*/like").authenticated()

@@ -2,6 +2,7 @@ package com.isptec.economiahistoriaapi.repository;
 
 import com.isptec.economiahistoriaapi.model.Comment;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -18,5 +19,9 @@ public interface CommentRepository extends JpaRepository<Comment, String> {
 
     @Query("SELECT c FROM Comment c LEFT JOIN FETCH c.author WHERE c.contentItem.contentId = :contentItemId ORDER BY c.commentedAt ASC")
     List<Comment> findByContentItemId(@Param("contentItemId") String contentItemId);
+
+    @Modifying
+    @Query("DELETE FROM Comment c WHERE c.contentItem.contentId = :contentId")
+    void deleteByContentItemId(@Param("contentId") String contentId);
 }
 

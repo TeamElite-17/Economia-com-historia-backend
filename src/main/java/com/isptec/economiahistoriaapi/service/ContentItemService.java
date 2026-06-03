@@ -3,8 +3,12 @@ package com.isptec.economiahistoriaapi.service;
 import com.isptec.economiahistoriaapi.enums.ContentStatus;
 import com.isptec.economiahistoriaapi.model.ContentItem;
 import com.isptec.economiahistoriaapi.repository.ContentItemRepository;
+import com.isptec.economiahistoriaapi.repository.ContentStatsRepository;
+import com.isptec.economiahistoriaapi.repository.ContentLikeRepository;
+import com.isptec.economiahistoriaapi.repository.CommentRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Optional;
 
@@ -13,6 +17,9 @@ import java.util.Optional;
 public class ContentItemService {
 
     private final ContentItemRepository contentItemRepository;
+    private final ContentStatsRepository contentStatsRepository;
+    private final ContentLikeRepository contentLikeRepository;
+    private final CommentRepository commentRepository;
 
     public ContentItem createContentItem(ContentItem contentItem) {
         return contentItemRepository.save(contentItem);
@@ -50,8 +57,14 @@ public class ContentItemService {
         return contentItemRepository.save(contentItem);
     }
 
+    @Transactional
     public void deleteContentItem(String contentId) {
-        contentItemRepository.deleteById(contentId);
+        // Elimina todas as referências ao conteúdo antes de deletar o próprio conteúdo
+        // Isso previne erros de foreign key constraint
+        contentStatsRepository.deleteByContentItemId(contentId);      // Elimina estatísticas
+        contentLikeRepository.deleteByContentItemId(contentId);       // Elimina gostos
+        commentRepository.deleteByContentItemId(contentId);           // Elimina comentários
+        contentItemRepository.deleteById(contentId);                  // Por fim, elimina o conteúdo
     }
 }
 

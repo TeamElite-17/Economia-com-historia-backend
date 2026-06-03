@@ -8,6 +8,8 @@ import com.isptec.economiahistoriaapi.exception.ResourceNotFoundException;
 import com.isptec.economiahistoriaapi.model.ContentItem;
 import com.isptec.economiahistoriaapi.model.Category;
 import com.isptec.economiahistoriaapi.repository.CategoryRepository;
+import com.isptec.economiahistoriaapi.repository.ContentLikeRepository;
+import com.isptec.economiahistoriaapi.repository.ContentStatsRepository;
 import com.isptec.economiahistoriaapi.repository.TopicRepository;
 import com.isptec.economiahistoriaapi.service.ContentItemService;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -22,7 +24,6 @@ import jakarta.validation.Valid;
 import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
-// status field support in DTO
 
 @RestController
 @RequestMapping("/v1/content-items")
@@ -33,6 +34,8 @@ public class ContentItemController {
     private final ContentItemService contentItemService;
     private final CategoryRepository categoryRepository;
     private final TopicRepository topicRepository;
+    private final ContentStatsRepository contentStatsRepository;
+    private final ContentLikeRepository contentLikeRepository;
 
     /** UC10 — Visualizar conteúdos publicados (todos os atores autenticados) */
     @GetMapping
@@ -115,10 +118,38 @@ public class ContentItemController {
         ContentItem existing = contentItemService.getContentItemById(contentId)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Conteúdo não encontrado com ID: " + contentId));
-        ContentItem updated = convertToEntity(dto);
-        updated.setContentId(contentId);
-        updated.setStatus(existing.getStatus());
-        return ResponseEntity.ok(convertToDTO(contentItemService.updateContentItem(updated)));
+
+        // Actualiza apenas os campos editáveis, preservando os metadados do registo original
+        if (dto.getTitle() != null) existing.setTitle(dto.getTitle());
+        if (dto.getDescription() != null) existing.setDescription(dto.getDescription());
+        if (dto.getMediaType() != null) existing.setMediaType(MediaType.valueOf(dto.getMediaType().toUpperCase()));
+        if (dto.getSourceUrl() != null) existing.setSourceUrl(dto.getSourceUrl());
+        if (dto.getRegionTag() != null) existing.setRegionTag(dto.getRegionTag());
+        if (dto.getDurationSeconds() != null) existing.setDurationSeconds(dto.getDurationSeconds());
+        if (dto.getWordCount() != null) existing.setWordCount(dto.getWordCount());
+        if (dto.getFileUrl() != null) existing.setFileUrl(dto.getFileUrl());
+        if (dto.getThumbnailUrl() != null) existing.setThumbnailUrl(dto.getThumbnailUrl());
+        if (dto.getIsJindungo() != null) existing.setIsJindungo(dto.getIsJindungo());
+
+        if (dto.getTopicId() != null) {
+            topicRepository.findById(dto.getTopicId()).ifPresent(existing::setTopic);
+        }
+        if (dto.getCategories() != null) {
+            List<Category> cats = dto.getCategories().stream()
+                    .map(catDto -> {
+                        if (catDto.getCategoryId() != null) {
+                            return categoryRepository.findById(catDto.getCategoryId()).orElse(null);
+                        } else if (catDto.getName() != null) {
+                            return categoryRepository.findByName(catDto.getName()).orElse(null);
+                        }
+                        return null;
+                    })
+                    .filter(java.util.Objects::nonNull)
+                    .collect(Collectors.toList());
+            existing.setCategories(cats);
+        }
+
+        return ResponseEntity.ok(convertToDTO(contentItemService.updateContentItem(existing)));
     }
 
     /** UC08 — Submeter para revisão (Escritor) */
@@ -194,8 +225,18 @@ public class ContentItemController {
     // ========== Conversão ==========
 
     private ContentItemDTO convertToDTO(ContentItem item) {
+        String id = item.getContentId();
+
+        // Contagem de views (da tabela content_stats)
+        Long viewCount = contentStatsRepository.findByContentItemId(id)
+                .map(s -> (long) s.getViewCount())
+                .orElse(0L);
+
+        // Contagem de gostos (da tabela content_likes)
+        Long likeCount = contentLikeRepository.countByContentId(id);
+
         return ContentItemDTO.builder()
-                .contentId(item.getContentId())
+                .contentId(id)
                 .title(item.getTitle())
                 .description(item.getDescription())
                 .mediaType(item.getMediaType() != null ? item.getMediaType().toString() : null)
@@ -210,8 +251,11 @@ public class ContentItemController {
                 .wordCount(item.getWordCount())
                 .fileUrl(item.getFileUrl())
                 .thumbnailUrl(item.getThumbnailUrl())
+                .isJindungo(item.getIsJindungo())
                 .topicId(item.getTopic() != null ? item.getTopic().getTopicId() : null)
                 .status(item.getStatus() != null ? item.getStatus().toString() : null)
+                .viewCount(viewCount)
+                .likeCount(likeCount)
                 .categories(item.getCategories() != null ? item.getCategories().stream()
                         .map(cat -> CategoryDTO.builder()
                                 .categoryId(cat.getCategoryId())
@@ -235,6 +279,7 @@ public class ContentItemController {
                 .wordCount(dto.getWordCount())
                 .fileUrl(dto.getFileUrl())
                 .thumbnailUrl(dto.getThumbnailUrl())
+                .isJindungo(dto.getIsJindungo() != null ? dto.getIsJindungo() : false)
                 .build();
 
         if (dto.getTopicId() != null) {

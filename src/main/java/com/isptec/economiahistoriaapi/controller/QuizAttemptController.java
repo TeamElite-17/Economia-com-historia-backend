@@ -5,6 +5,7 @@ import com.isptec.economiahistoriaapi.exception.ResourceNotFoundException;
 import com.isptec.economiahistoriaapi.model.Quiz;
 import com.isptec.economiahistoriaapi.model.QuizAttempt;
 import com.isptec.economiahistoriaapi.model.User;
+import com.isptec.economiahistoriaapi.repository.QuizAttemptRepository;
 import com.isptec.economiahistoriaapi.repository.QuizRepository;
 import com.isptec.economiahistoriaapi.repository.UserRepository;
 import com.isptec.economiahistoriaapi.service.QuizAttemptService;
@@ -15,7 +16,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @RestController
@@ -25,8 +28,48 @@ import java.util.stream.Collectors;
 public class QuizAttemptController {
 
     private final QuizAttemptService quizAttemptService;
+    private final QuizAttemptRepository quizAttemptRepository;
     private final QuizRepository quizRepository;
     private final UserRepository userRepository;
+
+    /**
+     * Ranking público — agrega tentativas concluídas por utilizador
+     */
+    @GetMapping("/ranking")
+    public ResponseEntity<List<Map<String, Object>>> getRanking() {
+        List<QuizAttempt> all = quizAttemptRepository.findAll();
+
+        // Agrupa por utilizador: soma pontos e conta quizzes distintos completos
+        Map<String, Map<String, Object>> byUser = new LinkedHashMap<>();
+        for (QuizAttempt qa : all) {
+            if (!qa.isCompleted() || qa.getUser() == null) continue;
+            String uid = qa.getUser().getUserId();
+            byUser.computeIfAbsent(uid, k -> {
+                User u = qa.getUser();
+                String avatarUrl = "https://ui-avatars.com/api/?name="
+                        + URLEncoder.encode(u.getName(), StandardCharsets.UTF_8)
+                        + "&background=7B1D2D&color=fff&size=200";
+                Map<String, Object> entry = new LinkedHashMap<>();
+                entry.put("userId", uid);
+                entry.put("userName", u.getName());
+                entry.put("userAvatar", avatarUrl);
+                entry.put("points", 0L);
+                entry.put("quizzesCompleted", 0);
+                return entry;
+            });
+            Map<String, Object> entry = byUser.get(uid);
+            entry.put("points", (Long) entry.get("points") + qa.getScore());
+            entry.put("quizzesCompleted", (Integer) entry.get("quizzesCompleted") + 1);
+        }
+
+        // Ordena por pontos desc, limita a 50
+        List<Map<String, Object>> ranking = byUser.values().stream()
+                .sorted((a, b) -> Long.compare((Long) b.get("points"), (Long) a.get("points")))
+                .limit(50)
+                .collect(Collectors.toList());
+
+        return ResponseEntity.ok(ranking);
+    }
 
     /**
      * UC11 — Realizar Quiz / submeter tentativa (utilizador autenticado)

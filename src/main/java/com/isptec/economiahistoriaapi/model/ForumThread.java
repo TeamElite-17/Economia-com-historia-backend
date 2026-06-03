@@ -41,6 +41,10 @@ public class ForumThread {
     
     @OneToMany(mappedBy = "forumThread", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Post> posts;
+
+    @Column(name = "view_count", nullable = false)
+    @Builder.Default
+    private long viewCount = 0;
     
     public void addPost(Post post) {
         if (this.posts == null) {
