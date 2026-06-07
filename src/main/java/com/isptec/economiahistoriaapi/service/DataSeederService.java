@@ -67,20 +67,31 @@ public class DataSeederService implements ApplicationRunner {
                 };
                 for (Object[] account : accounts) {
                         String email = (String) account[1];
-                        userRepository.findByEmail(email).orElseGet(() -> {
-                                User user = User.builder()
-                                                .name((String) account[0])
-                                                .email(email)
-                                                .passwordHash(passwordEncoder.encode((String) account[2]))
-                                                .role((UserRole) account[3])
-                                                .preferredLanguage("pt")
-                                                .build();
-                                User saved = userRepository.save(user);
-                                log.info("✅ Utilizador de teste: {} / {} ({})", email, account[2], account[3]);
-                                return saved;
-                        });
+                        UserRole expectedRole = (UserRole) account[3];
+                        userRepository.findByEmail(email).ifPresentOrElse(
+                                existingUser -> {
+                                        // Corrige o role se estiver errado (ex: criado antes como ESTUDANTE)
+                                        if (existingUser.getRole() != expectedRole) {
+                                                existingUser.setRole(expectedRole);
+                                                userRepository.save(existingUser);
+                                                log.info("🔧 Role corrigido: {} → {} ({})", email, expectedRole, existingUser.getUserId());
+                                        }
+                                },
+                                () -> {
+                                        User user = User.builder()
+                                                        .name((String) account[0])
+                                                        .email(email)
+                                                        .passwordHash(passwordEncoder.encode((String) account[2]))
+                                                        .role(expectedRole)
+                                                        .preferredLanguage("pt")
+                                                        .build();
+                                        userRepository.save(user);
+                                        log.info("✅ Utilizador de teste: {} / {} ({})", email, account[2], expectedRole);
+                                }
+                        );
                 }
         }
+
 
         private void seedCategories() {
                 String[][] cats = {
@@ -112,6 +123,10 @@ public class DataSeederService implements ApplicationRunner {
                 Category fin = categoryRepository.findByName("Financas Pessoais").orElse(null);
                 Category global = categoryRepository.findByName("Economia Global").orElse(null);
 
+                // Obter o escritor principal para atribuir como autor dos conteúdos
+                String escritorId = userRepository.findByEmail("escritor@economia.ao")
+                        .map(User::getUserId).orElse(null);
+
                 List<ContentItem> items = new ArrayList<>();
 
                 items.add(ContentItem.builder()
@@ -123,6 +138,7 @@ public class DataSeederService implements ApplicationRunner {
                                 .durationSeconds(1200)
                                 .status(ContentStatus.PUBLISHED)
                                 .publishedAt(new Date())
+                                .authorId(escritorId)
                                 .categories(econ != null ? List.of(econ) : new ArrayList<>())
                                 .build());
 
@@ -134,6 +150,7 @@ public class DataSeederService implements ApplicationRunner {
                                 .wordCount(2500)
                                 .status(ContentStatus.PUBLISHED)
                                 .publishedAt(new Date())
+                                .authorId(escritorId)
                                 .categories(hist != null ? List.of(hist) : new ArrayList<>())
                                 .build());
 
@@ -145,6 +162,7 @@ public class DataSeederService implements ApplicationRunner {
                                 .durationSeconds(2700)
                                 .status(ContentStatus.PUBLISHED)
                                 .publishedAt(new Date())
+                                .authorId(escritorId)
                                 .categories(fin != null ? List.of(fin) : new ArrayList<>())
                                 .build());
 
@@ -156,6 +174,7 @@ public class DataSeederService implements ApplicationRunner {
                                 .wordCount(3200)
                                 .status(ContentStatus.PUBLISHED)
                                 .publishedAt(new Date())
+                                .authorId(escritorId)
                                 .categories(fin != null ? List.of(fin) : new ArrayList<>())
                                 .build());
 
@@ -168,6 +187,7 @@ public class DataSeederService implements ApplicationRunner {
                                 .durationSeconds(1800)
                                 .status(ContentStatus.PUBLISHED)
                                 .publishedAt(new Date())
+                                .authorId(escritorId)
                                 .categories(global != null ? List.of(global) : new ArrayList<>())
                                 .build());
 
@@ -179,6 +199,7 @@ public class DataSeederService implements ApplicationRunner {
                                 .wordCount(2800)
                                 .status(ContentStatus.PUBLISHED)
                                 .publishedAt(new Date())
+                                .authorId(escritorId)
                                 .categories(fin != null ? List.of(fin) : new ArrayList<>())
                                 .build());
 

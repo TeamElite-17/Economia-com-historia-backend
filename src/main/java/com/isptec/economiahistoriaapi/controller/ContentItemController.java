@@ -11,6 +11,7 @@ import com.isptec.economiahistoriaapi.repository.CategoryRepository;
 import com.isptec.economiahistoriaapi.repository.ContentLikeRepository;
 import com.isptec.economiahistoriaapi.repository.ContentStatsRepository;
 import com.isptec.economiahistoriaapi.repository.TopicRepository;
+import com.isptec.economiahistoriaapi.repository.UserRepository;
 import com.isptec.economiahistoriaapi.service.ContentItemService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -36,6 +37,7 @@ public class ContentItemController {
     private final TopicRepository topicRepository;
     private final ContentStatsRepository contentStatsRepository;
     private final ContentLikeRepository contentLikeRepository;
+    private final UserRepository userRepository;
 
     /** UC10 — Visualizar conteúdos publicados (todos os atores autenticados) */
     @GetMapping
@@ -98,6 +100,10 @@ public class ContentItemController {
     @PostMapping
     public ResponseEntity<ContentItemDTO> createContent(@Valid @RequestBody ContentItemDTO dto) {
         ContentItem item = convertToEntity(dto);
+        // Define o autor como o utilizador autenticado (se não vier no DTO)
+        if (item.getAuthorId() == null || item.getAuthorId().isBlank()) {
+            item.setAuthorId(getLoggedInUserId());
+        }
         // Se o status vier no DTO usa-o, caso contrário publica diretamente
         ContentStatus status = (dto.getStatus() != null)
                 ? ContentStatus.valueOf(dto.getStatus().toUpperCase())
@@ -256,6 +262,7 @@ public class ContentItemController {
                 .status(item.getStatus() != null ? item.getStatus().toString() : null)
                 .viewCount(viewCount)
                 .likeCount(likeCount)
+                .authorId(item.getAuthorId())
                 .categories(item.getCategories() != null ? item.getCategories().stream()
                         .map(cat -> CategoryDTO.builder()
                                 .categoryId(cat.getCategoryId())
@@ -280,6 +287,7 @@ public class ContentItemController {
                 .fileUrl(dto.getFileUrl())
                 .thumbnailUrl(dto.getThumbnailUrl())
                 .isJindungo(dto.getIsJindungo() != null ? dto.getIsJindungo() : false)
+                .authorId(dto.getAuthorId())
                 .build();
 
         if (dto.getTopicId() != null) {
@@ -305,6 +313,11 @@ public class ContentItemController {
 
     private String getLoggedInUserId() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        return authentication != null ? authentication.getName() : null;
+        if (authentication == null) return null;
+        String email = authentication.getName();
+        // O principal name é o email — resolve para o userId
+        return userRepository.findByEmail(email)
+                .map(u -> u.getUserId())
+                .orElse(email); // fallback: retorna o email se não encontrar
     }
 }

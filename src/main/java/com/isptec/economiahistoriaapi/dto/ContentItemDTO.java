@@ -33,6 +33,8 @@ public class ContentItemDTO {
 
     private String approverId;
 
+    private String authorId;
+
     private String approvadoEm;
 
     private String regionId;
