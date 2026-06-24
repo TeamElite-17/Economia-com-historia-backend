@@ -10,8 +10,7 @@ import java.util.List;
 
 @Repository
 public interface ContentItemRepository extends JpaRepository<ContentItem, String> {
-    @Query("SELECT c FROM ContentItem c WHERE c.contentModule.moduleId = :moduleId")
-    List<ContentItem> findByContentModuleId(@Param("moduleId") String contentModuleId);
+
     List<ContentItem> findByRegionTag(String regionTag);
     List<ContentItem> findByStatus(ContentStatus status);
     List<ContentItem> findByAuthorId(String authorId);

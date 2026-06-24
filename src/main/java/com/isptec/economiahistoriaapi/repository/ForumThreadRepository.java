@@ -9,9 +9,11 @@ import java.util.List;
 
 @Repository
 public interface ForumThreadRepository extends JpaRepository<ForumThread, String> {
-    @Query("SELECT t FROM ForumThread t WHERE t.forumModule.moduleId = :moduleId")
-    List<ForumThread> findByForumModuleId(@Param("moduleId") String forumModuleId);
 
     @Query("SELECT t FROM ForumThread t WHERE t.topic.topicId = :topicId")
     List<ForumThread> findByTopicId(@Param("topicId") String topicId);
+
+    /** Busca thread com criador já carregado (evita LazyInitializationException ao gerar notificações) */
+    @Query("SELECT t FROM ForumThread t LEFT JOIN FETCH t.createdByUser WHERE t.threadId = :threadId")
+    java.util.Optional<ForumThread> findByIdWithCreator(@Param("threadId") String threadId);
 }

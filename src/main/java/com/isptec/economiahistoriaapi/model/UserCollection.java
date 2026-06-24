@@ -32,6 +32,15 @@ public class UserCollection {
     @Column(name = "item_id", nullable = false, length = 36)
     private String itemId;
 
+    /**
+     * Preferência de notificação para subscrições.
+     * Valores: "ALL" (receber todas) | "NONE" (não receber).
+     * Apenas relevante quando itemType = "SUBSCRIPTION".
+     */
+    @Column(name = "notification_pref", length = 10)
+    @Builder.Default
+    private String notificationPref = "ALL";
+
     @Temporal(TemporalType.TIMESTAMP)
     @Column(name = "created_at", nullable = false, updatable = false)
     private Date createdAt;
@@ -39,5 +48,9 @@ public class UserCollection {
     @PrePersist
     protected void onCreate() {
         this.createdAt = new Date();
+        if (this.notificationPref == null) {
+            this.notificationPref = "ALL";
+        }
     }
 }
+

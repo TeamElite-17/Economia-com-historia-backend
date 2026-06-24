@@ -4,7 +4,7 @@ import com.isptec.economiahistoriaapi.dto.ForumThreadDTO;
 import com.isptec.economiahistoriaapi.exception.ResourceNotFoundException;
 import com.isptec.economiahistoriaapi.model.ForumThread;
 import com.isptec.economiahistoriaapi.model.User;
-import com.isptec.economiahistoriaapi.repository.ForumModuleRepository;
+
 import com.isptec.economiahistoriaapi.repository.ForumThreadRepository;
 import com.isptec.economiahistoriaapi.repository.PostLikeRepository;
 import com.isptec.economiahistoriaapi.repository.PostRepository;
@@ -33,7 +33,7 @@ public class ForumThreadController {
 
     private final ForumThreadService forumThreadService;
     private final TopicRepository topicRepository;
-    private final ForumModuleRepository forumModuleRepository;
+
     private final UserRepository userRepository;
     private final PostRepository postRepository;
     private final PostLikeRepository postLikeRepository;
@@ -59,12 +59,7 @@ public class ForumThreadController {
         return new ResponseEntity<>(threads, HttpStatus.OK);
     }
 
-    /** Listar threads por módulo */
-    @GetMapping("/module/{moduleId}")
-    public ResponseEntity<List<ForumThreadDTO>> getThreadsByModule(@PathVariable String moduleId) {
-        return new ResponseEntity<>(forumThreadService.getThreadsByModule(moduleId)
-                .stream().map(this::convertToDTO).collect(Collectors.toList()), HttpStatus.OK);
-    }
+
 
     /** Listar threads por tópico */
     @GetMapping("/topic/{topicId}")
@@ -147,7 +142,7 @@ public class ForumThreadController {
                 .threadId(thread.getThreadId())
                 .title(thread.getTitle())
                 .createdAt(thread.getCreatedAt() != null ? thread.getCreatedAt().toString() : null)
-                .forumModuleId(thread.getForumModule() != null ? thread.getForumModule().getModuleId() : null)
+
                 .topicId(thread.getTopic() != null ? thread.getTopic().getTopicId() : null)
                 .createdByUserId(creatorId)
                 .createdByUserName(creatorName)
@@ -163,10 +158,7 @@ public class ForumThreadController {
                 .title(dto.getTitle())
                 .build();
 
-        if (dto.getForumModuleId() != null) {
-            forumModuleRepository.findById(dto.getForumModuleId())
-                    .ifPresent(thread::setForumModule);
-        }
+
 
         if (dto.getTopicId() != null) {
             topicRepository.findById(dto.getTopicId())

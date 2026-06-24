@@ -182,11 +182,41 @@ public class UserController {
     }
 
     private List<Map<String, Object>> toCollectionResponse(List<UserCollection> items) {
-        return items.stream().map(i -> Map.<String, Object>of(
-                "collectionId", i.getCollectionId(),
-                "userId", i.getUserId(),
-                "itemType", i.getItemType(),
-                "itemId", i.getItemId()
-        )).collect(Collectors.toList());
+        return items.stream().map(i -> {
+            java.util.Map<String, Object> m = new java.util.HashMap<>();
+            m.put("collectionId", i.getCollectionId());
+            m.put("userId", i.getUserId());
+            m.put("itemType", i.getItemType());
+            m.put("itemId", i.getItemId());
+            m.put("notificationPref", i.getNotificationPref() != null ? i.getNotificationPref() : "ALL");
+            return m;
+        }).collect(Collectors.toList());
+    }
+
+    /**
+     * PATCH /v1/users/{userId}/subscriptions/{authorId}/notification-pref
+     * Altera a preferência de notificação de uma subscrição.
+     * Body: { "notificationPref": "ALL" | "NONE" }
+     */
+    @PatchMapping("/{userId}/subscriptions/{authorId}/notification-pref")
+    public ResponseEntity<Map<String, Object>> updateSubscriptionNotificationPref(
+            @PathVariable String userId,
+            @PathVariable String authorId,
+            @RequestBody Map<String, String> body) {
+        String pref = body.get("notificationPref");
+        if (pref == null || (!pref.equals("ALL") && !pref.equals("NONE"))) {
+            return ResponseEntity.badRequest().body(Map.of("error", "notificationPref deve ser ALL ou NONE"));
+        }
+        UserCollection sub = userCollectionRepository
+                .findByUserIdAndItemTypeAndItemId(userId, "SUBSCRIPTION", authorId)
+                .orElseThrow(() -> new ResourceNotFoundException("Subscrição não encontrada"));
+        sub.setNotificationPref(pref);
+        userCollectionRepository.save(sub);
+        return ResponseEntity.ok(Map.of(
+                "collectionId", sub.getCollectionId(),
+                "userId", userId,
+                "itemId", authorId,
+                "notificationPref", pref
+        ));
     }
 }

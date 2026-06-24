@@ -18,5 +18,9 @@ public interface PostRepository extends JpaRepository<Post, String> {
 
     @Query("SELECT COUNT(p) FROM Post p WHERE p.forumThread.threadId = :threadId")
     Long countByForumThreadId(@Param("threadId") String threadId);
+
+    /** Busca post com autor já carregado (evita LazyInitializationException) */
+    @Query("SELECT p FROM Post p LEFT JOIN FETCH p.author WHERE p.postId = :postId")
+    java.util.Optional<Post> findByIdWithAuthor(@Param("postId") String postId);
 }
 

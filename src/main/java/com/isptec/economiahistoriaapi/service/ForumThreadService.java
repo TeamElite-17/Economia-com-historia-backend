@@ -21,9 +21,6 @@ public class ForumThreadService {
         return forumThreadRepository.findById(threadId);
     }
     
-    public List<ForumThread> getThreadsByModule(String forumModuleId) {
-        return forumThreadRepository.findByForumModuleId(forumModuleId);
-    }
 
     public List<ForumThread> getThreadsByTopic(String topicId) {
         return forumThreadRepository.findByTopicId(topicId);

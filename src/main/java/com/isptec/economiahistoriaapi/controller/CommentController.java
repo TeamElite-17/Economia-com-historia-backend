@@ -4,12 +4,14 @@ import com.isptec.economiahistoriaapi.dto.CommentDTO;
 import com.isptec.economiahistoriaapi.exception.ResourceNotFoundException;
 import com.isptec.economiahistoriaapi.model.Comment;
 import com.isptec.economiahistoriaapi.model.ContentItem;
+import com.isptec.economiahistoriaapi.model.Notification;
 import com.isptec.economiahistoriaapi.model.Post;
 import com.isptec.economiahistoriaapi.model.User;
 import com.isptec.economiahistoriaapi.repository.ContentItemRepository;
 import com.isptec.economiahistoriaapi.repository.PostRepository;
 import com.isptec.economiahistoriaapi.repository.UserRepository;
 import com.isptec.economiahistoriaapi.service.CommentService;
+import com.isptec.economiahistoriaapi.service.NotificationService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -33,6 +35,8 @@ public class CommentController {
     private final PostRepository postRepository;
     private final UserRepository userRepository;
     private final ContentItemRepository contentItemRepository;
+    private final com.isptec.economiahistoriaapi.repository.CommentRepository commentRepository;
+    private final NotificationService notificationService;
 
     /**
      * UC14 — Listar comentários de um post do fórum
@@ -42,6 +46,16 @@ public class CommentController {
         List<CommentDTO> comments = commentService.getCommentsByPost(postId)
                 .stream().map(this::convertToDTO).collect(Collectors.toList());
         return ResponseEntity.ok(comments);
+    }
+
+    /**
+     * Listar sub-respostas (filhos) de um comentário
+     */
+    @GetMapping("/{commentId}/replies")
+    public ResponseEntity<List<CommentDTO>> getRepliesByComment(@PathVariable String commentId) {
+        List<CommentDTO> replies = commentRepository.findByParentCommentId(commentId)
+                .stream().map(this::convertToDTO).collect(Collectors.toList());
+        return ResponseEntity.ok(replies);
     }
 
     /**
@@ -82,7 +96,52 @@ public class CommentController {
             }
         }
         Comment comment = convertToEntity(dto);
-        return new ResponseEntity<>(convertToDTO(commentService.createComment(comment)), HttpStatus.CREATED);
+        Comment saved = commentService.createComment(comment);
+
+        // ── Notificação (eager loading via queries dedicadas) ─────────────────
+        try {
+            String commenterName = "Alguém";
+            if (dto.getUserId() != null) {
+                commenterName = userRepository.findById(dto.getUserId())
+                        .map(u -> u.getName()).orElse("Alguém");
+            }
+
+            User target = null;
+            String msg = null;
+
+            if (dto.getParentCommentId() != null && !dto.getParentCommentId().isBlank()) {
+                // Resposta a um comentário — notifica o autor do comentário pai
+                target = commentRepository.findByIdWithAuthor(dto.getParentCommentId())
+                        .map(c -> c.getAuthor()).orElse(null);
+                msg = commenterName + " respondeu ao teu comentário";
+            } else if (dto.getPostId() != null && !dto.getPostId().isBlank()) {
+                // Comentário num post do fórum — notifica o autor do post
+                target = postRepository.findByIdWithAuthor(dto.getPostId())
+                        .map(p -> p.getAuthor()).orElse(null);
+                msg = commenterName + " comentou na tua resposta";
+            } else if (dto.getContentItemId() != null && !dto.getContentItemId().isBlank()) {
+                // Comentário num conteúdo didático — notifica o autor do conteúdo
+                String authorId = contentItemRepository.findById(dto.getContentItemId())
+                        .map(ci -> ci.getAuthorId()).orElse(null);
+                if (authorId != null) {
+                    target = userRepository.findById(authorId).orElse(null);
+                }
+                msg = commenterName + " comentou no teu conteúdo";
+            }
+
+            // Só notifica se o alvo existe e é diferente de quem comentou
+            if (target != null && !target.getUserId().equals(dto.getUserId())) {
+                notificationService.createNotification(
+                    Notification.builder().user(target).message(msg).read(false).build()
+                );
+            }
+        } catch (Exception e) {
+            System.err.println("[NotificationError] " + e.getMessage());
+        }
+
+
+        return new ResponseEntity<>(convertToDTO(saved), HttpStatus.CREATED);
+
     }
 
     /**
@@ -129,12 +188,13 @@ public class CommentController {
         return CommentDTO.builder()
                 .commentId(comment.getCommentId())
                 .content(comment.getContent())
-                .commentedAt(comment.getCommentedAt() != null ? comment.getCommentedAt().toString() : null)
+                .commentedAt(comment.getCommentedAt() != null ? new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'").format(comment.getCommentedAt()) : null)
                 .postId(comment.getPost() != null ? comment.getPost().getPostId() : null)
                 .contentItemId(comment.getContentItem() != null ? comment.getContentItem().getContentId() : null)
                 .userId(comment.getAuthor() != null ? comment.getAuthor().getUserId() : null)
                 .userName(authorName)
                 .userAvatar(avatarUrl)
+                .parentCommentId(comment.getParentComment() != null ? comment.getParentComment().getCommentId() : null)
                 .build();
     }
 
@@ -165,6 +225,14 @@ public class CommentController {
                     .orElseThrow(() -> new ResourceNotFoundException(
                             "Utilizador não encontrado com ID: " + dto.getUserId()));
             builder.author(user);
+        }
+
+        // Liga ao comentário pai (sub-resposta aninhada)
+        if (dto.getParentCommentId() != null && !dto.getParentCommentId().isBlank()) {
+            Comment parent = commentRepository.findById(dto.getParentCommentId())
+                    .orElseThrow(() -> new ResourceNotFoundException(
+                            "Comentário pai não encontrado com ID: " + dto.getParentCommentId()));
+            builder.parentComment(parent);
         }
 
         return builder.build();

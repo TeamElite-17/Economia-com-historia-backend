@@ -45,17 +45,7 @@ public class QuizController {
         return new ResponseEntity<>(quizzes, HttpStatus.OK);
     }
     
-    /**
-     * Listar quizzes por módulo
-     */
-    @GetMapping("/module/{moduleId}")
-    public ResponseEntity<List<QuizDTO>> getQuizzesByModule(@PathVariable String moduleId) {
-        List<QuizDTO> quizzes = quizService.getQuizzesByModule(moduleId)
-                .stream()
-                .map(this::convertToDTO)
-                .collect(Collectors.toList());
-        return new ResponseEntity<>(quizzes, HttpStatus.OK);
-    }
+
     
     /**
      * Criar novo quiz
@@ -110,8 +100,7 @@ public class QuizController {
                 .title(quiz.getTitle())
                 .description(quiz.getDescription())
                 .passingScore(quiz.getPassingScore())
-                .quizModuleId(quiz.getQuizModule() != null ? 
-                        quiz.getQuizModule().getModuleId() : null)
+
                 .build();
     }
     

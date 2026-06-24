@@ -37,18 +37,9 @@ public class Quiz {
     @Column(name = "author_id", length = 36)
     private String authorId;
     
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "quiz_module_id")
-    private QuizModule quizModule;
     
     @OneToMany(mappedBy = "quiz", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Question> questions;
     
-    @OneToMany(mappedBy = "quiz", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<ScoreResult> scoreResults;
-    
-    public ScoreResult evaluate(QuizAttempt attempt) {
-        // Logic for evaluating a quiz attempt
-        return null;
-    }
+
 }

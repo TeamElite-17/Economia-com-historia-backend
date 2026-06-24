@@ -64,6 +64,7 @@ public class DataSeederService implements ApplicationRunner {
                                 { "Maria Revisora", "revisor@economia.ao", "Revisor@1234", UserRole.REVISOR },
                                 { "Carlos Aprovador", "aprovador@economia.ao", "Aprovador@1234", UserRole.APROVADOR },
                                 { "Ana Estudante", "estudante@economia.ao", "Estudante@1234", UserRole.ESTUDANTE },
+                                { "Pedro Administrador", "gestor@economia.ao", "Gestor@1234", UserRole.ADMIN },
                 };
                 for (Object[] account : accounts) {
                         String email = (String) account[1];

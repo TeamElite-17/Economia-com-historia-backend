@@ -23,5 +23,4 @@ public class QuizDTO {
     @NotNull(message = "A pontuação mínima para passar é obrigatória")
     private Integer passingScore;
     
-    private String quizModuleId;
 }

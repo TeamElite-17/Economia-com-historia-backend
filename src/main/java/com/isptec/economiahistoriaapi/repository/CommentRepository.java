@@ -14,6 +14,13 @@ public interface CommentRepository extends JpaRepository<Comment, String> {
     @Query("SELECT c FROM Comment c LEFT JOIN FETCH c.author WHERE c.post.postId = :postId ORDER BY c.commentedAt ASC")
     List<Comment> findByPostId(@Param("postId") String postId);
 
+    @Query("SELECT c FROM Comment c LEFT JOIN FETCH c.author WHERE c.parentComment.commentId = :parentCommentId ORDER BY c.commentedAt ASC")
+    List<Comment> findByParentCommentId(@Param("parentCommentId") String parentCommentId);
+
+    /** Busca comentário com autor já carregado */
+    @Query("SELECT c FROM Comment c LEFT JOIN FETCH c.author WHERE c.commentId = :commentId")
+    java.util.Optional<Comment> findByIdWithAuthor(@Param("commentId") String commentId);
+
     @Query("SELECT c FROM Comment c LEFT JOIN FETCH c.author WHERE c.author.userId = :userId ORDER BY c.commentedAt DESC")
     List<Comment> findByAuthorId(@Param("userId") String userId);
 

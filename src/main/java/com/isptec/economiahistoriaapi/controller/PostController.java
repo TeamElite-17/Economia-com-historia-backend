@@ -7,7 +7,10 @@ import com.isptec.economiahistoriaapi.model.PostLike;
 import com.isptec.economiahistoriaapi.model.User;
 import com.isptec.economiahistoriaapi.repository.PostLikeRepository;
 import com.isptec.economiahistoriaapi.repository.UserRepository;
+import com.isptec.economiahistoriaapi.model.Notification;
+import com.isptec.economiahistoriaapi.repository.ForumThreadRepository;
 import com.isptec.economiahistoriaapi.service.ForumThreadService;
+import com.isptec.economiahistoriaapi.service.NotificationService;
 import com.isptec.economiahistoriaapi.service.PostService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -36,6 +39,8 @@ public class PostController {
     private final ForumThreadService forumThreadService;
     private final UserRepository userRepository;
     private final PostLikeRepository postLikeRepository;
+    private final NotificationService notificationService;
+    private final ForumThreadRepository forumThreadRepository;
 
     /** Listar posts de uma thread */
     @GetMapping("/thread/{threadId}")
@@ -68,9 +73,34 @@ public class PostController {
             }
         }
         Post post = convertToEntity(dto);
-        System.out.println("DEBUG - Creating Post: threadId=" + dto.getThreadId() + ", hasForumThread=" + (post.getForumThread() != null));
         Post saved = postService.createPost(post);
-        System.out.println("DEBUG - Saved Post: postId=" + saved.getPostId());
+
+        // ── Notificação ao dono do tópico ────────────────────────────────────
+        try {
+            if (dto.getThreadId() != null && !dto.getThreadId().isBlank()) {
+                String commenterName = "Alguém";
+                if (dto.getUserId() != null) {
+                    commenterName = userRepository.findById(dto.getUserId())
+                            .map(User::getName).orElse("Alguém");
+                }
+                final String finalCommenterName = commenterName;
+                forumThreadRepository.findByIdWithCreator(dto.getThreadId()).ifPresent(thread -> {
+                    User threadOwner = thread.getCreatedByUser();
+                    if (threadOwner != null && !threadOwner.getUserId().equals(dto.getUserId())) {
+                        notificationService.createNotification(
+                            Notification.builder()
+                                .user(threadOwner)
+                                .message(finalCommenterName + " respondeu ao teu tópico")
+                                .read(false)
+                                .build()
+                        );
+                    }
+                });
+            }
+        } catch (Exception e) {
+            System.err.println("[NotificationError] " + e.getMessage());
+        }
+
         String currentUserId = dto.getUserId();
         return new ResponseEntity<>(convertToDTO(saved, currentUserId), HttpStatus.CREATED);
     }

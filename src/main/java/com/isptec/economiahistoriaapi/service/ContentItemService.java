@@ -29,9 +29,6 @@ public class ContentItemService {
         return contentItemRepository.findById(contentId);
     }
 
-    public List<ContentItem> getContentByModule(String contentModuleId) {
-        return contentItemRepository.findByContentModuleId(contentModuleId);
-    }
 
     public List<ContentItem> getContentByRegion(String regionTag) {
         return contentItemRepository.findByRegionTag(regionTag);

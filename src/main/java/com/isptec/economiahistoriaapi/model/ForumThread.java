@@ -27,9 +27,6 @@ public class ForumThread {
     @Column(name = "created_at", nullable = false)
     private Date createdAt;
     
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "forum_module_id")
-    private ForumModule forumModule;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "topic_id")

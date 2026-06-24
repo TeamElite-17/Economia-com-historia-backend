@@ -96,6 +96,9 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/v1/files/upload/**").authenticated()
                         .requestMatchers(HttpMethod.DELETE, "/v1/files/**").hasAnyRole("ADMIN", "SUPERADMIN")
 
+                        // Notificações - apenas utilizador autenticado
+                        .requestMatchers("/v1/notifications/**").authenticated()
+
                         // Admin - apenas ADMIN e SUPERADMIN
                         .requestMatchers("/v1/admin/**").hasAnyRole("ADMIN", "SUPERADMIN")
 

@@ -32,5 +32,8 @@ public class CommentDTO {
 
     /** Avatar do autor — preenchido na resposta */
     private String userAvatar;
+
+    /** ID do comentário pai — se preenchido, este é uma resposta aninhada */
+    private String parentCommentId;
 }
 

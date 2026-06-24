@@ -22,7 +22,7 @@ public class Notification {
     @Column(nullable = false, length = 255)
     private String message;
     
-    @Column(nullable = false)
+    @Column(name = "`read`", nullable = false)
     private boolean read;
     
     @Temporal(TemporalType.TIMESTAMP)

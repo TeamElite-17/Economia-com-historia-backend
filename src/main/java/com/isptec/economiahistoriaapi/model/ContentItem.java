@@ -90,9 +90,6 @@ public class ContentItem {
     @JoinColumn(name = "region_id")
     private RegionIndicator regionIndicator;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "content_module_id")
-    private ContentModule contentModule;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "topic_id")

@@ -15,6 +15,8 @@ public interface UserCollectionRepository extends JpaRepository<UserCollection, 
 
     Optional<UserCollection> findByUserIdAndItemTypeAndItemId(String userId, String itemType, String itemId);
 
+    List<UserCollection> findByItemTypeAndItemId(String itemType, String itemId);
+
     @Transactional
     void deleteByUserIdAndItemTypeAndItemId(String userId, String itemType, String itemId);
 }

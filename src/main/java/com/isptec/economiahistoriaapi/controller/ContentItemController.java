@@ -12,6 +12,9 @@ import com.isptec.economiahistoriaapi.repository.ContentLikeRepository;
 import com.isptec.economiahistoriaapi.repository.ContentStatsRepository;
 import com.isptec.economiahistoriaapi.repository.TopicRepository;
 import com.isptec.economiahistoriaapi.repository.UserRepository;
+import com.isptec.economiahistoriaapi.repository.UserCollectionRepository;
+import com.isptec.economiahistoriaapi.service.NotificationService;
+import com.isptec.economiahistoriaapi.model.Notification;
 import com.isptec.economiahistoriaapi.service.ContentItemService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -38,11 +41,34 @@ public class ContentItemController {
     private final ContentStatsRepository contentStatsRepository;
     private final ContentLikeRepository contentLikeRepository;
     private final UserRepository userRepository;
+    private final NotificationService notificationService;
+    private final UserCollectionRepository userCollectionRepository;
 
-    /** UC10 — Visualizar conteúdos publicados (todos os atores autenticados) */
+    /** UC10 — Visualizar conteúdos (filtro opcional por status; sem filtro = PUBLISHED) */
     @GetMapping
-    public ResponseEntity<List<ContentItemDTO>> getPublishedContent() {
-        List<ContentItemDTO> items = contentItemService.getContentByStatus(ContentStatus.PUBLISHED)
+    public ResponseEntity<List<ContentItemDTO>> getPublishedContent(
+            @RequestParam(required = false) String status) {
+        List<ContentItemDTO> items;
+        if (status != null && !status.isBlank()) {
+            try {
+                ContentStatus cs = ContentStatus.valueOf(status.toUpperCase());
+                items = contentItemService.getContentByStatus(cs)
+                        .stream().map(this::convertToDTO).collect(Collectors.toList());
+            } catch (IllegalArgumentException e) {
+                return ResponseEntity.badRequest().build();
+            }
+        } else {
+            items = contentItemService.getContentByStatus(ContentStatus.PUBLISHED)
+                    .stream().map(this::convertToDTO).collect(Collectors.toList());
+        }
+        return ResponseEntity.ok(items);
+    }
+
+    /** Listar conteúdos do utilizador autenticado (todos os estados) */
+    @GetMapping("/my")
+    public ResponseEntity<List<ContentItemDTO>> getMyContent() {
+        String userId = getLoggedInUserId();
+        List<ContentItemDTO> items = contentItemService.getContentByAuthor(userId)
                 .stream().map(this::convertToDTO).collect(Collectors.toList());
         return ResponseEntity.ok(items);
     }
@@ -57,12 +83,7 @@ public class ContentItemController {
                         "Conteúdo não encontrado com ID: " + contentId));
     }
 
-    /** UC10 — Listar por módulo */
-    @GetMapping("/module/{moduleId}")
-    public ResponseEntity<List<ContentItemDTO>> getContentByModule(@PathVariable String moduleId) {
-        return ResponseEntity.ok(contentItemService.getContentByModule(moduleId)
-                .stream().map(this::convertToDTO).collect(Collectors.toList()));
-    }
+
 
     /** UC10 — Listar por região */
     @GetMapping("/region/{regionTag}")
@@ -112,7 +133,11 @@ public class ContentItemController {
         if (status == ContentStatus.PUBLISHED) {
             item.setPublishedAt(new java.util.Date());
         }
-        return new ResponseEntity<>(convertToDTO(contentItemService.createContentItem(item)), HttpStatus.CREATED);
+        ContentItem savedItem = contentItemService.createContentItem(item);
+        if (status == ContentStatus.PUBLISHED) {
+            notifySubscribers(savedItem);
+        }
+        return new ResponseEntity<>(convertToDTO(savedItem), HttpStatus.CREATED);
     }
 
     /** UC08 — Editar conteúdo (Escritor edita os seus; Revisor edita qualquer rascunho) */
@@ -203,7 +228,9 @@ public class ContentItemController {
         item.setStatus(ContentStatus.PUBLISHED);
         item.setPublishedAt(new Date());
         item.setApproverId(getLoggedInUserId());
-        return ResponseEntity.ok(convertToDTO(contentItemService.updateContentItem(item)));
+        ContentItem savedItem = contentItemService.updateContentItem(item);
+        notifySubscribers(savedItem);
+        return ResponseEntity.ok(convertToDTO(savedItem));
     }
 
     /** UC09 — Rejeitar conteúdo (Aprovador) */
@@ -252,7 +279,7 @@ public class ContentItemController {
                 .reviewedAt(item.getReviewedAt() != null ? item.getReviewedAt().toString() : null)
                 .approverId(item.getApproverId())
                 .regionId(item.getRegionIndicator() != null ? item.getRegionIndicator().getRegionId() : null)
-                .contentModuleId(item.getContentModule() != null ? item.getContentModule().getModuleId() : null)
+
                 .durationSeconds(item.getDurationSeconds())
                 .wordCount(item.getWordCount())
                 .fileUrl(item.getFileUrl())
@@ -319,5 +346,38 @@ public class ContentItemController {
         return userRepository.findByEmail(email)
                 .map(u -> u.getUserId())
                 .orElse(email); // fallback: retorna o email se não encontrar
+    }
+
+    private void notifySubscribers(ContentItem item) {
+        try {
+            if (item.getAuthorId() == null) return;
+            
+            // Buscar o nome do autor para a mensagem
+            String authorName = userRepository.findById(item.getAuthorId())
+                    .map(u -> u.getName())
+                    .orElse("Um autor que subscreves");
+
+            String message = authorName + " publicou um novo conteúdo: " + item.getTitle();
+
+            List<com.isptec.economiahistoriaapi.model.UserCollection> subscriptions = 
+                    userCollectionRepository.findByItemTypeAndItemId("SUBSCRIPTION", item.getAuthorId());
+
+            for (com.isptec.economiahistoriaapi.model.UserCollection sub : subscriptions) {
+                if ("NONE".equalsIgnoreCase(sub.getNotificationPref())) {
+                    continue;
+                }
+                userRepository.findById(sub.getUserId()).ifPresent(userToNotify -> {
+                    notificationService.createNotification(
+                        Notification.builder()
+                            .user(userToNotify)
+                            .message(message)
+                            .read(false)
+                            .build()
+                    );
+                });
+            }
+        } catch (Exception e) {
+            System.err.println("[NotificationError] Erro ao notificar subscritores: " + e.getMessage());
+        }
     }
 }

@@ -39,7 +39,6 @@ public class ContentItemDTO {
 
     private String regionId;
 
-    private String contentModuleId;
 
     private Integer durationSeconds;
     private Integer wordCount;

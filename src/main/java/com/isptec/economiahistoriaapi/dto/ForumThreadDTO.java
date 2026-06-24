@@ -19,7 +19,6 @@ public class ForumThreadDTO {
 
     private String createdAt;
 
-    private String forumModuleId;
     private String topicId;
 
     /** ID do utilizador que criou a thread — opcional no pedido, preenchido na resposta */

@@ -9,6 +9,5 @@ import java.util.List;
 
 @Repository
 public interface QuizRepository extends JpaRepository<Quiz, String> {
-    @Query("SELECT q FROM Quiz q WHERE q.quizModule.moduleId = :moduleId")
-    List<Quiz> findByQuizModuleId(@Param("moduleId") String quizModuleId);
+
 }

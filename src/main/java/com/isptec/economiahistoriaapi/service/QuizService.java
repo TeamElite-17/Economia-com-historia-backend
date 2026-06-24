@@ -21,9 +21,7 @@ public class QuizService {
         return quizRepository.findById(quizId);
     }
     
-    public List<Quiz> getQuizzesByModule(String quizModuleId) {
-        return quizRepository.findByQuizModuleId(quizModuleId);
-    }
+
     
     public List<Quiz> getAllQuizzes() {
         return quizRepository.findAll();

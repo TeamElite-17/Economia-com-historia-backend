@@ -37,6 +37,11 @@ public class Comment {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
     private User author;
+
+    /** Comentário pai — se preenchido, este é uma resposta aninhada */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "parent_comment_id")
+    private Comment parentComment;
     
     @PrePersist
     protected void onCreate() {
