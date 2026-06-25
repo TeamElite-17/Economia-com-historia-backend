@@ -3,6 +3,8 @@ package com.isptec.economiahistoriaapi.controller;
 import com.isptec.economiahistoriaapi.dto.AuthResponse;
 import com.isptec.economiahistoriaapi.dto.LoginRequest;
 import com.isptec.economiahistoriaapi.dto.RegisterRequest;
+import com.isptec.economiahistoriaapi.dto.ForgotPasswordRequest;
+import com.isptec.economiahistoriaapi.dto.ResetPasswordRequest;
 import com.isptec.economiahistoriaapi.service.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -52,5 +54,23 @@ public class AuthController {
             @RequestHeader("Authorization") String authorizationHeader) {
         authService.logout(authorizationHeader);
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/forgot-password")
+    @Operation(summary = "Esqueceu a senha", description = "Envia um email com o link de recuperação de senha")
+    public ResponseEntity<String> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+        try {
+            authService.forgotPassword(request);
+        } catch (Exception e) {
+            // Não expor que o utilizador não existe por segurança
+        }
+        return ResponseEntity.ok("Se o email existir, receberá um link de recuperação em breve.");
+    }
+
+    @PostMapping("/reset-password")
+    @Operation(summary = "Redefinir senha", description = "Define uma nova senha utilizando o token de recuperação")
+    public ResponseEntity<String> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        authService.resetPassword(request);
+        return ResponseEntity.ok("Senha redefinida com sucesso.");
     }
 }

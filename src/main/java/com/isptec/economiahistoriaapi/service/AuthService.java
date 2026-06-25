@@ -9,7 +9,10 @@ import com.isptec.economiahistoriaapi.exception.BadRequestException;
 import com.isptec.economiahistoriaapi.exception.ConflictException;
 import com.isptec.economiahistoriaapi.model.User;
 import com.isptec.economiahistoriaapi.repository.UserRepository;
+import com.isptec.economiahistoriaapi.dto.ForgotPasswordRequest;
+import com.isptec.economiahistoriaapi.dto.ResetPasswordRequest;
 import com.isptec.economiahistoriaapi.service.TokenBlacklistService;
+import com.isptec.economiahistoriaapi.service.EmailService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -23,6 +26,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
     private final TokenBlacklistService tokenBlacklistService;
+    private final EmailService emailService;
 
     /**
      * UC01 — Efetuar Login
@@ -79,5 +83,36 @@ public class AuthService {
                 .email(user.getEmail())
                 .role(user.getRole().name())
                 .build();
+    }
+
+    public void forgotPassword(ForgotPasswordRequest request) {
+        User user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new BadRequestException("Se o email existir, será enviado um link de recuperação."));
+
+        String token = jwtUtil.generatePasswordResetToken(user.getEmail());
+        String resetLink = "http://localhost:5173/reset-password?token=" + token;
+
+        emailService.sendPasswordResetEmail(user.getEmail(), resetLink);
+    }
+
+    public void resetPassword(ResetPasswordRequest request) {
+        if (!jwtUtil.isTokenValid(request.getToken())) {
+            throw new BadRequestException("Token inválido ou expirado");
+        }
+
+        String role = jwtUtil.extractRole(request.getToken());
+        if (!"RESET_PASSWORD".equals(role)) {
+            throw new BadRequestException("Token inválido");
+        }
+
+        String email = jwtUtil.extractEmail(request.getToken());
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new BadRequestException("Utilizador não encontrado"));
+
+        user.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));
+        userRepository.save(user);
+
+        // Opcionalmente invalidar o token de reset, se mantivermos estado de tokens invalidados
+        tokenBlacklistService.invalidate(request.getToken());
     }
 }

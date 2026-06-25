@@ -29,6 +29,17 @@ public class JwtUtil {
                 .compact();
     }
 
+    public String generatePasswordResetToken(String email) {
+        SecretKey key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+        return Jwts.builder()
+                .subject(email)
+                .claim("role", "RESET_PASSWORD")
+                .issuedAt(new Date())
+                .expiration(new Date(System.currentTimeMillis() + 15 * 60 * 1000)) // 15 minutos
+                .signWith(key)
+                .compact();
+    }
+
     public String extractEmail(String token) {
         return getClaims(token).getSubject();
     }
