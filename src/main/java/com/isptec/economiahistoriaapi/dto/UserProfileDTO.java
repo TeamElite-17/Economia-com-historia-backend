@@ -24,4 +24,16 @@ public class UserProfileDTO {
     private String educationLevel;
     
     private String region;
+    
+    private String name;
+    
+    private String avatarUrl;
+    
+    private String youtubeUrl;
+    
+    private String instagramUrl;
+    
+    private String facebookUrl;
+    
+    private String websiteUrl;
 }

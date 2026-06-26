@@ -18,8 +18,8 @@ import java.util.List;
 public class User {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID) // Substitui a String userId por um UUID robusto automático
-    @Column(name = "user_id")
+    @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(name = "user_id", columnDefinition = "VARCHAR(255)")
     private String userId;
 
     @NotBlank(message = "O nome é obrigatório")

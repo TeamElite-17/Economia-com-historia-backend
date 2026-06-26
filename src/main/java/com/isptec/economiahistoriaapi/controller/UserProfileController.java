@@ -4,6 +4,7 @@ import com.isptec.economiahistoriaapi.dto.UserDTO;
 import com.isptec.economiahistoriaapi.dto.UserProfileDTO;
 import com.isptec.economiahistoriaapi.exception.ResourceNotFoundException;
 import com.isptec.economiahistoriaapi.model.UserProfile;
+import com.isptec.economiahistoriaapi.repository.UserRepository;
 import com.isptec.economiahistoriaapi.service.UserProfileService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +20,19 @@ import jakarta.validation.Valid;
 public class UserProfileController {
 
     private final UserProfileService userProfileService;
+    private final UserRepository userRepository;
+
+    /**
+     * Obter todos os perfis
+     */
+    @GetMapping
+    public ResponseEntity<java.util.List<UserProfileDTO>> getAllProfiles() {
+        java.util.List<UserProfileDTO> profiles = userProfileService.getAllProfiles()
+                .stream()
+                .map(this::convertToDTO)
+                .collect(java.util.stream.Collectors.toList());
+        return ResponseEntity.ok(profiles);
+    }
 
     /**
      * UC03 — Ver perfil de um utilizador
@@ -50,6 +64,15 @@ public class UserProfileController {
     @PostMapping
     public ResponseEntity<UserProfileDTO> createProfile(@Valid @RequestBody UserProfileDTO dto) {
         UserProfile profile = convertToEntity(dto);
+        if (dto.getUserId() != null) {
+            userRepository.findById(dto.getUserId()).ifPresent(user -> {
+                profile.setUser(user);
+                if (dto.getName() != null && !dto.getName().trim().isEmpty()) {
+                    user.setName(dto.getName());
+                    userRepository.save(user);
+                }
+            });
+        }
         UserProfile saved = userProfileService.createProfile(profile);
         return new ResponseEntity<>(convertToDTO(saved), HttpStatus.CREATED);
     }
@@ -69,6 +92,11 @@ public class UserProfileController {
         UserProfile updated = convertToEntity(dto);
         updated.setProfileId(profileId);
         updated.setUser(existing.getUser());
+        
+        if (dto.getName() != null && !dto.getName().trim().isEmpty() && existing.getUser() != null) {
+            existing.getUser().setName(dto.getName());
+            userRepository.save(existing.getUser());
+        }
 
         return ResponseEntity.ok(convertToDTO(userProfileService.updateProfile(updated)));
     }
@@ -82,6 +110,12 @@ public class UserProfileController {
                 .ageRange(profile.getAgeRange())
                 .educationLevel(profile.getEducationLevel())
                 .region(profile.getRegion())
+                .avatarUrl(profile.getAvatarUrl())
+                .youtubeUrl(profile.getYoutubeUrl())
+                .instagramUrl(profile.getInstagramUrl())
+                .facebookUrl(profile.getFacebookUrl())
+                .websiteUrl(profile.getWebsiteUrl())
+                .name(profile.getUser() != null ? profile.getUser().getName() : null)
                 .userId(profile.getUser() != null ? profile.getUser().getUserId() : null)
                 .build();
     }
@@ -92,6 +126,11 @@ public class UserProfileController {
                 .ageRange(dto.getAgeRange())
                 .educationLevel(dto.getEducationLevel())
                 .region(dto.getRegion())
+                .avatarUrl(dto.getAvatarUrl())
+                .youtubeUrl(dto.getYoutubeUrl())
+                .instagramUrl(dto.getInstagramUrl())
+                .facebookUrl(dto.getFacebookUrl())
+                .websiteUrl(dto.getWebsiteUrl())
                 .build();
     }
 }

@@ -30,6 +30,21 @@ public class UserProfile {
     @Column(length = 100)
     private String region;
     
+    @Column(columnDefinition = "TEXT")
+    private String avatarUrl;
+    
+    @Column(length = 255)
+    private String youtubeUrl;
+    
+    @Column(length = 255)
+    private String instagramUrl;
+    
+    @Column(length = 255)
+    private String facebookUrl;
+    
+    @Column(length = 255)
+    private String websiteUrl;
+    
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
     private User user;
