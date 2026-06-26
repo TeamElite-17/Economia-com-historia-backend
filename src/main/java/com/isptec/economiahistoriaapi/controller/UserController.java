@@ -5,6 +5,7 @@ import com.isptec.economiahistoriaapi.exception.ResourceNotFoundException;
 import com.isptec.economiahistoriaapi.model.User;
 import com.isptec.economiahistoriaapi.model.UserCollection;
 import com.isptec.economiahistoriaapi.repository.UserCollectionRepository;
+import com.isptec.economiahistoriaapi.repository.QuizAttemptRepository;
 import com.isptec.economiahistoriaapi.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -22,6 +23,7 @@ public class UserController {
     
     private final UserService userService;
     private final UserCollectionRepository userCollectionRepository;
+    private final QuizAttemptRepository quizAttemptRepository;
     
     /**
      * Obter detalhes de um utilizador
@@ -105,6 +107,11 @@ public class UserController {
     // ========== Métodos de Conversão ==========
     
     private UserDTO convertToDTO(User user) {
+        int historyCount = userCollectionRepository.findByUserIdAndItemType(user.getUserId(), "HISTORY").size();
+        int subsCount = userCollectionRepository.findByUserIdAndItemType(user.getUserId(), "SUBSCRIPTION").size();
+        int quizCount = quizAttemptRepository.findByUserId(user.getUserId()).size();
+        int subscribersCount = userCollectionRepository.findByItemTypeAndItemId("SUBSCRIPTION", user.getUserId()).size();
+
         return UserDTO.builder()
                 .userId(user.getUserId())
                 .name(user.getName())
@@ -113,6 +120,10 @@ public class UserController {
                 .preferredLanguage(user.getPreferredLanguage())
                 .registrationDate(user.getRegistrationDate() != null ? 
                         user.getRegistrationDate().toString() : null)
+                .watchHistoryCount(historyCount)
+                .completedQuizzesCount(quizCount)
+                .subscriptionsCount(subsCount)
+                .subscribersCount(subscribersCount)
                 .build();
     }
     

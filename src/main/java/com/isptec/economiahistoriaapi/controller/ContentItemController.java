@@ -142,7 +142,7 @@ public class ContentItemController {
 
     /** UC08 — Editar conteúdo (Escritor edita os seus; Revisor edita qualquer rascunho) */
     @PutMapping("/{contentId}")
-    @PreAuthorize("hasAnyRole('ESCRITOR', 'REVISOR', 'ADMIN', 'SUPERADMIN')")
+    @PreAuthorize("hasAnyRole('ESCRITOR', 'REVISOR', 'APROVADOR', 'ADMIN', 'SUPERADMIN')")
     public ResponseEntity<ContentItemDTO> updateContent(
             @PathVariable String contentId,
             @Valid @RequestBody ContentItemDTO dto) {
@@ -244,13 +244,21 @@ public class ContentItemController {
         return ResponseEntity.ok(convertToDTO(contentItemService.updateContentItem(item)));
     }
 
-    /** Eliminar conteúdo (Admin) */
+    /** Eliminar conteúdo (Admin ou Autor) */
     @DeleteMapping("/{contentId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'SUPERADMIN')")
+    @PreAuthorize("hasAnyRole('ESCRITOR', 'REVISOR', 'APROVADOR', 'ADMIN', 'SUPERADMIN')")
     public ResponseEntity<Void> deleteContentItem(@PathVariable String contentId) {
-        if (!contentItemService.getContentItemById(contentId).isPresent()) {
-            throw new ResourceNotFoundException("Conteúdo não encontrado com ID: " + contentId);
+        ContentItem item = contentItemService.getContentItemById(contentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Conteúdo não encontrado com ID: " + contentId));
+
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        boolean isAdmin = auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_SUPERADMIN"));
+        
+        if (!isAdmin && !item.getAuthorId().equals(getLoggedInUserId())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
+
         contentItemService.deleteContentItem(contentId);
         return ResponseEntity.noContent().build();
     }

@@ -59,7 +59,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/v1/content-items/*/like").authenticated()
                         .requestMatchers(HttpMethod.POST, "/v1/content-items").authenticated()
                         .requestMatchers(HttpMethod.PUT, "/v1/content-items/**").authenticated()
-                        .requestMatchers(HttpMethod.DELETE, "/v1/content-items/**").hasAnyRole("ADMIN", "SUPERADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/v1/content-items/**").hasAnyRole("ESCRITOR", "REVISOR", "APROVADOR", "ADMIN", "SUPERADMIN")
                         .requestMatchers(HttpMethod.PATCH, "/v1/content-items/**").authenticated()
 
                         // Quiz - GET público, escrita autenticada

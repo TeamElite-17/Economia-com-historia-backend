@@ -34,4 +34,9 @@ public class UserDTO {
     private String preferredLanguage;
     
     private String registrationDate;
+    
+    private Integer watchHistoryCount;
+    private Integer completedQuizzesCount;
+    private Integer subscriptionsCount;
+    private Integer subscribersCount;
 }
