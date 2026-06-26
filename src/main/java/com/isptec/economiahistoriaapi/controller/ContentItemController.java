@@ -161,6 +161,7 @@ public class ContentItemController {
         if (dto.getFileUrl() != null) existing.setFileUrl(dto.getFileUrl());
         if (dto.getThumbnailUrl() != null) existing.setThumbnailUrl(dto.getThumbnailUrl());
         if (dto.getIsJindungo() != null) existing.setIsJindungo(dto.getIsJindungo());
+        if (dto.getAuthorId() != null && !dto.getAuthorId().isBlank()) existing.setAuthorId(dto.getAuthorId());
 
         if (dto.getTopicId() != null) {
             topicRepository.findById(dto.getTopicId()).ifPresent(existing::setTopic);
