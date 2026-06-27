@@ -44,7 +44,10 @@ public class ContentItemController {
     private final NotificationService notificationService;
     private final UserCollectionRepository userCollectionRepository;
 
-    /** UC10 — Visualizar conteúdos (filtro opcional por status; sem filtro = PUBLISHED) */
+    /**
+     * UC10 — Visualizar conteúdos (filtro opcional por status; sem filtro =
+     * PUBLISHED)
+     */
     @GetMapping
     public ResponseEntity<List<ContentItemDTO>> getPublishedContent(
             @RequestParam(required = false) String status) {
@@ -83,8 +86,6 @@ public class ContentItemController {
                         "Conteúdo não encontrado com ID: " + contentId));
     }
 
-
-
     /** UC10 — Listar por região */
     @GetMapping("/region/{regionTag}")
     public ResponseEntity<List<ContentItemDTO>> getContentByRegion(@PathVariable String regionTag) {
@@ -117,7 +118,10 @@ public class ContentItemController {
         return ResponseEntity.ok(items);
     }
 
-    /** Criar conteúdo (qualquer utilizador autenticado) — publicado diretamente pelo admin */
+    /**
+     * Criar conteúdo (qualquer utilizador autenticado) — publicado diretamente pelo
+     * admin
+     */
     @PostMapping
     public ResponseEntity<ContentItemDTO> createContent(@Valid @RequestBody ContentItemDTO dto) {
         ContentItem item = convertToEntity(dto);
@@ -140,7 +144,10 @@ public class ContentItemController {
         return new ResponseEntity<>(convertToDTO(savedItem), HttpStatus.CREATED);
     }
 
-    /** UC08 — Editar conteúdo (Escritor edita os seus; Revisor edita qualquer rascunho) */
+    /**
+     * UC08 — Editar conteúdo (Escritor edita os seus; Revisor edita qualquer
+     * rascunho)
+     */
     @PutMapping("/{contentId}")
     @PreAuthorize("hasAnyRole('ESCRITOR', 'REVISOR', 'APROVADOR', 'ADMIN', 'SUPERADMIN')")
     public ResponseEntity<ContentItemDTO> updateContent(
@@ -150,18 +157,30 @@ public class ContentItemController {
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Conteúdo não encontrado com ID: " + contentId));
 
-        // Actualiza apenas os campos editáveis, preservando os metadados do registo original
-        if (dto.getTitle() != null) existing.setTitle(dto.getTitle());
-        if (dto.getDescription() != null) existing.setDescription(dto.getDescription());
-        if (dto.getMediaType() != null) existing.setMediaType(MediaType.valueOf(dto.getMediaType().toUpperCase()));
-        if (dto.getSourceUrl() != null) existing.setSourceUrl(dto.getSourceUrl());
-        if (dto.getRegionTag() != null) existing.setRegionTag(dto.getRegionTag());
-        if (dto.getDurationSeconds() != null) existing.setDurationSeconds(dto.getDurationSeconds());
-        if (dto.getWordCount() != null) existing.setWordCount(dto.getWordCount());
-        if (dto.getFileUrl() != null) existing.setFileUrl(dto.getFileUrl());
-        if (dto.getThumbnailUrl() != null) existing.setThumbnailUrl(dto.getThumbnailUrl());
-        if (dto.getIsJindungo() != null) existing.setIsJindungo(dto.getIsJindungo());
-        if (dto.getAuthorId() != null && !dto.getAuthorId().isBlank()) existing.setAuthorId(dto.getAuthorId());
+        // Actualiza apenas os campos editáveis, preservando os metadados do registo
+        // original
+        if (dto.getTitle() != null)
+            existing.setTitle(dto.getTitle());
+        if (dto.getDescription() != null)
+            existing.setDescription(dto.getDescription());
+        if (dto.getMediaType() != null)
+            existing.setMediaType(MediaType.valueOf(dto.getMediaType().toUpperCase()));
+        if (dto.getSourceUrl() != null)
+            existing.setSourceUrl(dto.getSourceUrl());
+        if (dto.getRegionTag() != null)
+            existing.setRegionTag(dto.getRegionTag());
+        if (dto.getDurationSeconds() != null)
+            existing.setDurationSeconds(dto.getDurationSeconds());
+        if (dto.getWordCount() != null)
+            existing.setWordCount(dto.getWordCount());
+        if (dto.getFileUrl() != null)
+            existing.setFileUrl(dto.getFileUrl());
+        if (dto.getThumbnailUrl() != null)
+            existing.setThumbnailUrl(dto.getThumbnailUrl());
+        if (dto.getIsJindungo() != null)
+            existing.setIsJindungo(dto.getIsJindungo());
+        if (dto.getAuthorId() != null && !dto.getAuthorId().isBlank())
+            existing.setAuthorId(dto.getAuthorId());
 
         if (dto.getTopicId() != null) {
             topicRepository.findById(dto.getTopicId()).ifPresent(existing::setTopic);
@@ -221,7 +240,7 @@ public class ContentItemController {
 
     /** UC09 — Aprovar e publicar conteúdo (Aprovador) */
     @PatchMapping("/{contentId}/approve")
-    @PreAuthorize("hasRole('APROVADOR')")
+    @PreAuthorize("hasAnyRole('APROVADOR', 'ADMIN', 'SUPERADMIN')")
     public ResponseEntity<ContentItemDTO> approveContent(@PathVariable String contentId) {
         ContentItem item = contentItemService.getContentItemById(contentId)
                 .orElseThrow(() -> new ResourceNotFoundException(
@@ -236,7 +255,7 @@ public class ContentItemController {
 
     /** UC09 — Rejeitar conteúdo (Aprovador) */
     @PatchMapping("/{contentId}/reject")
-    @PreAuthorize("hasRole('APROVADOR')")
+    @PreAuthorize("hasAnyRole('APROVADOR', 'ADMIN', 'SUPERADMIN')")
     public ResponseEntity<ContentItemDTO> rejectContent(@PathVariable String contentId) {
         ContentItem item = contentItemService.getContentItemById(contentId)
                 .orElseThrow(() -> new ResourceNotFoundException(
@@ -255,7 +274,7 @@ public class ContentItemController {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         boolean isAdmin = auth.getAuthorities().stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_SUPERADMIN"));
-        
+
         if (!isAdmin && !item.getAuthorId().equals(getLoggedInUserId())) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
@@ -349,7 +368,8 @@ public class ContentItemController {
 
     private String getLoggedInUserId() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null) return null;
+        if (authentication == null)
+            return null;
         String email = authentication.getName();
         // O principal name é o email — resolve para o userId
         return userRepository.findByEmail(email)
@@ -359,8 +379,9 @@ public class ContentItemController {
 
     private void notifySubscribers(ContentItem item) {
         try {
-            if (item.getAuthorId() == null) return;
-            
+            if (item.getAuthorId() == null)
+                return;
+
             // Buscar o nome do autor para a mensagem
             String authorName = userRepository.findById(item.getAuthorId())
                     .map(u -> u.getName())
@@ -368,8 +389,8 @@ public class ContentItemController {
 
             String message = authorName + " publicou um novo conteúdo: " + item.getTitle();
 
-            List<com.isptec.economiahistoriaapi.model.UserCollection> subscriptions = 
-                    userCollectionRepository.findByItemTypeAndItemId("SUBSCRIPTION", item.getAuthorId());
+            List<com.isptec.economiahistoriaapi.model.UserCollection> subscriptions = userCollectionRepository
+                    .findByItemTypeAndItemId("SUBSCRIPTION", item.getAuthorId());
 
             for (com.isptec.economiahistoriaapi.model.UserCollection sub : subscriptions) {
                 if ("NONE".equalsIgnoreCase(sub.getNotificationPref())) {
@@ -377,12 +398,11 @@ public class ContentItemController {
                 }
                 userRepository.findById(sub.getUserId()).ifPresent(userToNotify -> {
                     notificationService.createNotification(
-                        Notification.builder()
-                            .user(userToNotify)
-                            .message(message)
-                            .read(false)
-                            .build()
-                    );
+                            Notification.builder()
+                                    .user(userToNotify)
+                                    .message(message)
+                                    .read(false)
+                                    .build());
                 });
             }
         } catch (Exception e) {
