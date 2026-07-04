@@ -1,0 +1,601 @@
+@startuml
+skinparam classAttributeIconSize 0
+left to right direction
+
+package "Camada de Domínio" {
+  class User {
+    -String userId
+    -String name
+    -String email
+    -String passwordHash
+    -UserRole role
+    -String preferredLanguage
+    -Date registrationDate
+    +boolean login(String email, String password)
+    +void logout()
+    +void participate()
+  }
+
+  class UserProfile {
+    -String profileId
+    -String bio
+    -String ageRange
+    -String educationLevel
+    -String region
+    -String avatarUrl
+    -String youtubeUrl
+    -String instagramUrl
+    -String facebookUrl
+    -String websiteUrl
+    +void editProfile()
+  }
+
+  class Notification {
+    -String notificationId
+    -String message
+    -boolean read
+    -Date createdAt
+    +void markAsRead()
+  }
+
+  class QuizAttempt {
+    -String attemptId
+    -Date takenAt
+    -int score
+    -boolean completed
+    +void submit()
+  }
+
+  class Post {
+    -String postId
+    -String content
+    -Date postedAt
+    +void reply(Comment comment)
+  }
+
+  class Comment {
+    -String commentId
+    -String content
+    -Date commentedAt
+  }
+
+  class ForumThread {
+    -String threadId
+    -String title
+    -Date createdAt
+    -long viewCount
+    +void addPost(Post post)
+  }
+
+  class Topic {
+    -String topicId
+    -String name
+    -String slug
+    -String description
+    -LocalDateTime createdAt
+  }
+
+  class Category {
+    -String categoryId
+    -String name
+    -String slug
+    -String description
+  }
+
+  class ContentItem {
+    -String contentId
+    -String title
+    -String description
+    -MediaType mediaType
+    -String sourceUrl
+    -String regionTag
+    -ContentStatus status
+    -String authorId
+    -String reviewerId
+    -Date reviewedAt
+    -String approverId
+    -Date publishedAt
+    -Integer durationSeconds
+    -Integer wordCount
+    -String fileUrl
+    -String thumbnailUrl
+    -Boolean isJindungo
+    +void play()
+    +void read()
+  }
+
+  class ContentStats {
+    -String statsId
+    -Long viewCount
+    -Long shareCount
+    -Long commentCount
+    -LocalDateTime lastUpdated
+  }
+
+  class ContentLike {
+    -String likeId
+    -LocalDateTime likedAt
+  }
+
+  class PostLike {
+    -String likeId
+    -LocalDateTime likedAt
+  }
+
+  class UserCollection {
+    -String collectionId
+    -String userId
+    -String itemType
+    -String itemId
+    -String notificationPref
+    -Date createdAt
+  }
+
+  class Quiz {
+    -String quizId
+    -String title
+    -String description
+    -int passingScore
+    -ContentStatus status
+    -String authorId
+  }
+
+  class Question {
+    -String questionId
+    -String text
+    -QuestionType type
+    -int points
+    +boolean validateAnswer(AnswerOption answer)
+  }
+
+  class AnswerOption {
+    -String optionId
+    -String text
+    -boolean correct
+  }
+
+  class RegionIndicator {
+    -String regionId
+    -String name
+    -String description
+    -String mapUrl
+    +void highlightRegion()
+  }
+
+  enum UserRole {
+    SUPERADMIN
+    ADMIN
+    APROVADOR
+    REVISOR
+    ESCRITOR
+    ESTUDANTE
+  }
+
+  enum ContentStatus {
+    DRAFT
+    UNDER_REVIEW
+    APPROVED
+    PUBLISHED
+    REJECTED
+  }
+
+  enum MediaType {
+    TEXT
+    VIDEO
+    PODCAST
+    IMAGE
+  }
+
+  enum QuestionType {
+    SINGLE_CHOICE
+    MULTIPLE_CHOICE
+    TRUE_FALSE
+  }
+}
+
+package "Camada de Persistência" {
+  interface UserRepository {
+    +Optional<User> findByEmail(String email)
+    +boolean existsByEmail(String email)
+  }
+
+  interface UserProfileRepository {
+    +Optional<UserProfile> findByUserId(String userId)
+  }
+
+  interface CategoryRepository {
+    +Optional<Category> findBySlug(String slug)
+  }
+
+  interface TopicRepository {
+    +Optional<Topic> findBySlug(String slug)
+  }
+
+  interface ContentItemRepository {
+    +List<ContentItem> findByTopicId(String topicId)
+    +List<ContentItem> findByRegionId(String regionId)
+  }
+
+  interface CommentRepository {
+    +List<Comment> findByPostId(String postId)
+    +List<Comment> findByContentItemId(String contentItemId)
+  }
+
+  interface PostRepository {
+    +List<Post> findByForumThreadId(String forumThreadId)
+  }
+
+  interface ForumThreadRepository {
+    +List<ForumThread> findByTopicId(String topicId)
+  }
+
+  interface QuizRepository {
+    +List<Quiz> findAllByStatus(ContentStatus status)
+  }
+
+  interface QuestionRepository {
+    +List<Question> findByQuizId(String quizId)
+  }
+
+  interface AnswerOptionRepository {
+    +List<AnswerOption> findByQuestionId(String questionId)
+  }
+
+  interface QuizAttemptRepository {
+    +List<QuizAttempt> findByUserId(String userId)
+  }
+
+  interface NotificationRepository {
+    +List<Notification> findByUserId(String userId)
+  }
+
+  interface RegionIndicatorRepository {
+  }
+
+  interface ContentStatsRepository {
+    +Optional<ContentStats> findByContentId(String contentId)
+  }
+
+  interface ContentLikeRepository {
+    +Optional<ContentLike> findByContentIdAndUserId(String contentId, String userId)
+  }
+
+  interface PostLikeRepository {
+    +Optional<PostLike> findByPostIdAndUserId(String postId, String userId)
+  }
+
+  interface UserCollectionRepository {
+    +List<UserCollection> findByUserIdAndItemType(String userId, String itemType)
+    +Optional<UserCollection> findByUserIdAndItemTypeAndItemId(String userId, String itemType, String itemId)
+  }
+}
+
+package "Camada de Serviço" {
+  class AuthService {
+    -UserRepository userRepository
+    -EmailService emailService
+    -TokenBlacklistService tokenBlacklistService
+    +AuthResponse login(LoginRequest request)
+    +AuthResponse register(RegisterRequest request)
+    +void logout(String bearerToken)
+    +void forgotPassword(ForgotPasswordRequest request)
+    +void resetPassword(ResetPasswordRequest request)
+  }
+
+  class UserService {
+    -UserRepository userRepository
+    +User createUser(User user)
+    +Optional<User> getUserById(String userId)
+    +Optional<User> getUserByEmail(String email)
+    +List<User> getAllUsers()
+    +User updateUser(User user)
+    +void deleteUser(String userId)
+    +boolean userExists(String email)
+  }
+
+  class UserProfileService {
+    -UserProfileRepository userProfileRepository
+    +UserProfile createProfile(UserProfile profile)
+    +UserProfile updateProfile(UserProfile profile)
+    +void deleteProfile(String profileId)
+  }
+
+  class CategoryService {
+    -CategoryRepository categoryRepository
+    +CategoryDTO findById(String id)
+    +CategoryDTO create(CategoryDTO dto)
+    +CategoryDTO update(String id, CategoryDTO dto)
+    +void delete(String id)
+  }
+
+  class TopicService {
+    -TopicRepository topicRepository
+    +TopicDTO findById(String id)
+    +TopicDTO create(TopicDTO dto, String creatorEmail)
+    +TopicDTO update(String id, TopicDTO dto)
+    +void delete(String id)
+  }
+
+  class ContentItemService {
+    -ContentItemRepository contentItemRepository
+    -CategoryRepository categoryRepository
+    -TopicRepository topicRepository
+    +ContentItem createContentItem(ContentItem contentItem)
+    +ContentItem updateContentItem(ContentItem contentItem)
+    +void deleteContentItem(String contentId)
+  }
+
+  class CommentService {
+    -CommentRepository commentRepository
+    +Comment createComment(Comment comment)
+    +Comment updateComment(Comment comment)
+    +void deleteComment(String commentId)
+  }
+
+  class PostService {
+    -PostRepository postRepository
+    +Post createPost(Post post)
+    +Post updatePost(Post post)
+    +void deletePost(String postId)
+  }
+
+  class ForumThreadService {
+    -ForumThreadRepository forumThreadRepository
+    +ForumThread createThread(ForumThread thread)
+    +ForumThread updateThread(ForumThread thread)
+    +void deleteThread(String threadId)
+  }
+
+  class QuizService {
+    -QuizRepository quizRepository
+    +Quiz createQuiz(Quiz quiz)
+    +Quiz updateQuiz(Quiz quiz)
+    +void deleteQuiz(String quizId)
+  }
+
+  class QuestionService {
+    -QuestionRepository questionRepository
+    -AnswerOptionRepository answerOptionRepository
+    +Question createQuestion(Question question)
+    +Question updateQuestion(Question question)
+    +void deleteQuestion(String questionId)
+  }
+
+  class QuizAttemptService {
+    -QuizAttemptRepository quizAttemptRepository
+    +QuizAttempt createAttempt(QuizAttempt attempt)
+    +QuizAttempt updateAttempt(QuizAttempt attempt)
+    +void deleteAttempt(String attemptId)
+  }
+
+  class NotificationService {
+    -NotificationRepository notificationRepository
+    +Notification createNotification(Notification notification)
+    +Notification updateNotification(Notification notification)
+    +void deleteNotification(String notificationId)
+  }
+
+  class RegionIndicatorService {
+    -RegionIndicatorRepository regionIndicatorRepository
+    +RegionIndicator createRegion(RegionIndicator region)
+    +RegionIndicator updateRegion(RegionIndicator region)
+    +void deleteRegion(String regionId)
+  }
+
+  class ContentStatsService {
+    -ContentStatsRepository contentStatsRepository
+    -ContentLikeRepository contentLikeRepository
+    +ContentStatsDTO getStats(String contentId, String currentUserEmail)
+    +void registerView(String contentId)
+    +void registerShare(String contentId)
+    +boolean toggleLike(String contentId, String userEmail)
+  }
+
+  class FileStorageService {
+    +String uploadVideoFile(MultipartFile file)
+    +String uploadAudioFile(MultipartFile file)
+    +String uploadImageFile(MultipartFile file)
+    +void deleteFile(String subdirectory, String filename)
+  }
+}
+
+package "Camada de Controle" {
+  class AuthController {
+    -AuthService authService
+    +ResponseEntity<AuthResponse> login(LoginRequest request)
+    +ResponseEntity<AuthResponse> register(RegisterRequest request)
+    +ResponseEntity<Void> logout(String bearerToken)
+  }
+
+  class UserController {
+    -UserService userService
+    -UserCollectionRepository userCollectionRepository
+    -QuizAttemptRepository quizAttemptRepository
+    +ResponseEntity<UserDTO> getUserById(String userId)
+    +ResponseEntity<List<UserDTO>> getAllUsers()
+    +ResponseEntity<UserDTO> createUser(UserDTO userDTO)
+    +ResponseEntity<Void> deleteUser(String userId)
+  }
+
+  class UserProfileController {
+    -UserProfileService userProfileService
+    +ResponseEntity<UserProfileDTO> getProfile(String userId)
+    +ResponseEntity<UserProfileDTO> updateProfile(String userId, UserProfileDTO dto)
+  }
+
+  class CategoryController {
+    -CategoryService categoryService
+    +ResponseEntity<CategoryDTO> getById(String id)
+    +ResponseEntity<CategoryDTO> create(CategoryDTO dto)
+  }
+
+  class TopicController {
+    -TopicService topicService
+    +ResponseEntity<TopicDTO> getById(String id)
+    +ResponseEntity<TopicDTO> create(TopicDTO dto)
+  }
+
+  class ContentItemController {
+    -ContentItemService contentItemService
+    +ResponseEntity<ContentItemDTO> getById(String id)
+    +ResponseEntity<ContentItemDTO> create(ContentItemDTO dto)
+  }
+
+  class CommentController {
+    -CommentService commentService
+    +ResponseEntity<CommentDTO> create(CommentDTO dto)
+  }
+
+  class PostController {
+    -PostService postService
+    +ResponseEntity<PostDTO> create(PostDTO dto)
+  }
+
+  class ForumThreadController {
+    -ForumThreadService forumThreadService
+    +ResponseEntity<ForumThreadDTO> create(ForumThreadDTO dto)
+  }
+
+  class QuizController {
+    -QuizService quizService
+    +ResponseEntity<QuizDTO> create(QuizDTO dto)
+  }
+
+  class QuestionController {
+    -QuestionService questionService
+    +ResponseEntity<QuestionDTO> create(QuestionDTO dto)
+  }
+
+  class QuizAttemptController {
+    -QuizAttemptService quizAttemptService
+    +ResponseEntity<QuizAttemptDTO> create(QuizAttemptDTO dto)
+  }
+
+  class NotificationController {
+    -NotificationService notificationService
+    +ResponseEntity<NotificationDTO> getByUserId(String userId)
+  }
+
+  class RegionIndicatorController {
+    -RegionIndicatorService regionIndicatorService
+    +ResponseEntity<RegionIndicatorDTO> create(RegionIndicatorDTO dto)
+  }
+
+  class ContentStatsController {
+    -ContentStatsService contentStatsService
+    +ResponseEntity<ContentStatsDTO> getStats(String contentId)
+  }
+
+  class FileUploadController {
+    -FileStorageService fileStorageService
+    +ResponseEntity<Map<String, String>> uploadFile(MultipartFile file)
+  }
+}
+
+User "1" *-- "0..1" UserProfile
+User "1" o-- "0..*" Notification
+User "1" o-- "0..*" QuizAttempt
+User "1" o-- "0..*" Post
+User "1" o-- "0..*" Comment
+User "1" o-- "0..*" ContentLike
+User "1" o-- "0..*" PostLike
+User "1" o-- "0..*" UserCollection
+User "1" o-- "0..*" Topic : createdTopics
+User "1" o-- "0..*" ForumThread : createdThreads
+
+ForumThread "1" o-- "0..*" Post
+Post "1" o-- "0..*" Comment
+Comment "0..1" o-- "0..*" Comment : replies
+
+Topic "1" o-- "0..*" ForumThread
+Topic "1" o-- "0..*" ContentItem
+
+Category "0..1" o-- "0..*" Category : subCategories
+Category "0..*" -- "0..*" ContentItem : categories
+
+ContentItem "1" *-- "0..1" ContentStats
+ContentItem "1" o-- "0..*" Comment
+ContentItem "1" o-- "0..*" ContentLike
+ContentItem "1" --> "0..1" RegionIndicator
+ContentItem "1" --> "0..1" Topic
+
+Quiz "1" o-- "0..*" Question
+Question "1" o-- "0..*" AnswerOption
+Quiz "1" o-- "0..*" QuizAttempt
+
+AuthController "1" --> "1" AuthService
+UserController "1" --> "1" UserService
+UserProfileController "1" --> "1" UserProfileService
+CategoryController "1" --> "1" CategoryService
+TopicController "1" --> "1" TopicService
+ContentItemController "1" --> "1" ContentItemService
+CommentController "1" --> "1" CommentService
+PostController "1" --> "1" PostService
+ForumThreadController "1" --> "1" ForumThreadService
+QuizController "1" --> "1" QuizService
+QuestionController "1" --> "1" QuestionService
+QuizAttemptController "1" --> "1" QuizAttemptService
+NotificationController "1" --> "1" NotificationService
+RegionIndicatorController "1" --> "1" RegionIndicatorService
+ContentStatsController "1" --> "1" ContentStatsService
+FileUploadController "1" --> "1" FileStorageService
+
+AuthService "1" --> "1" UserRepository
+AuthService ..> User
+UserService "1" --> "1" UserRepository
+UserService ..> User
+UserProfileService "1" --> "1" UserProfileRepository
+UserProfileService ..> UserProfile
+CategoryService "1" --> "1" CategoryRepository
+CategoryService ..> Category
+TopicService "1" --> "1" TopicRepository
+TopicService ..> Topic
+ContentItemService "1" --> "1" ContentItemRepository
+ContentItemService ..> ContentItem
+CommentService "1" --> "1" CommentRepository
+CommentService ..> Comment
+PostService "1" --> "1" PostRepository
+PostService ..> Post
+ForumThreadService "1" --> "1" ForumThreadRepository
+ForumThreadService ..> ForumThread
+QuizService "1" --> "1" QuizRepository
+QuizService ..> Quiz
+QuestionService "1" --> "1" QuestionRepository
+QuestionService "1" --> "1" AnswerOptionRepository
+QuestionService ..> Question
+QuizAttemptService "1" --> "1" QuizAttemptRepository
+QuizAttemptService ..> QuizAttempt
+NotificationService "1" --> "1" NotificationRepository
+NotificationService ..> Notification
+RegionIndicatorService "1" --> "1" RegionIndicatorRepository
+RegionIndicatorService ..> RegionIndicator
+ContentStatsService "1" --> "1" ContentStatsRepository
+ContentStatsService ..> ContentStats
+
+UserController "1" --> "1" UserCollectionRepository
+UserController "1" --> "1" QuizAttemptRepository
+
+UserRepository ..> User
+UserProfileRepository ..> UserProfile
+CategoryRepository ..> Category
+TopicRepository ..> Topic
+ContentItemRepository ..> ContentItem
+CommentRepository ..> Comment
+PostRepository ..> Post
+ForumThreadRepository ..> ForumThread
+QuizRepository ..> Quiz
+QuestionRepository ..> Question
+AnswerOptionRepository ..> AnswerOption
+QuizAttemptRepository ..> QuizAttempt
+NotificationRepository ..> Notification
+RegionIndicatorRepository ..> RegionIndicator
+ContentStatsRepository ..> ContentStats
+ContentLikeRepository ..> ContentLike
+PostLikeRepository ..> PostLike
+UserCollectionRepository ..> UserCollection
+
+User --> UserRole
+ContentItem --> ContentStatus
+ContentItem --> MediaType
+Question --> QuestionType
+@enduml

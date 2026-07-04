@@ -1,0 +1,213 @@
+@startuml
+skinparam linetype ortho
+skinparam classAttributeIconSize 0
+
+entity users {
+  * user_id : VARCHAR(36) <<PK>>
+  name : VARCHAR(255) NOT NULL
+  email : VARCHAR(255) NOT NULL
+  password_hash : VARCHAR(255) NOT NULL
+  role : VARCHAR(20) NOT NULL
+  preferred_language : VARCHAR(50)
+  registration_date : TIMESTAMP NOT NULL
+}
+
+entity user_profiles {
+  * profile_id : VARCHAR(36) <<PK>>
+  bio : TEXT
+  age_range : VARCHAR(50)
+  education_level : VARCHAR(100)
+  region : VARCHAR(100)
+  avatar_url : VARCHAR(1000)
+  youtube_url : VARCHAR(255)
+  instagram_url : VARCHAR(255)
+  facebook_url : VARCHAR(255)
+  website_url : VARCHAR(255)
+  user_id : VARCHAR(36) <<FK>>
+}
+
+entity notifications {
+  * notification_id : VARCHAR(36) <<PK>>
+  message : VARCHAR(255) NOT NULL
+  read : BOOLEAN NOT NULL
+  created_at : TIMESTAMP NOT NULL
+  user_id : VARCHAR(36) <<FK>>
+}
+
+entity topics {
+  * topic_id : VARCHAR(36) <<PK>>
+  name : VARCHAR(150) NOT NULL
+  slug : VARCHAR(180) NOT NULL
+  description : TEXT
+  created_at : TIMESTAMP NOT NULL
+  created_by : VARCHAR(36) <<FK>>
+}
+
+entity forum_threads {
+  * thread_id : VARCHAR(36) <<PK>>
+  title : VARCHAR(255) NOT NULL
+  created_at : TIMESTAMP NOT NULL
+  topic_id : VARCHAR(36) <<FK>>
+  created_by_user_id : VARCHAR(36) <<FK>>
+  view_count : BIGINT NOT NULL
+}
+
+entity posts {
+  * post_id : VARCHAR(36) <<PK>>
+  content : TEXT NOT NULL
+  posted_at : TIMESTAMP NOT NULL
+  forum_thread_id : VARCHAR(36) <<FK>>
+  user_id : VARCHAR(36) <<FK>>
+}
+
+entity comments {
+  * comment_id : VARCHAR(36) <<PK>>
+  content : TEXT NOT NULL
+  commented_at : TIMESTAMP NOT NULL
+  post_id : VARCHAR(36) <<FK>>
+  content_item_id : VARCHAR(36) <<FK>>
+  user_id : VARCHAR(36) <<FK>>
+  parent_comment_id : VARCHAR(36) <<FK>>
+}
+
+entity categories {
+  * category_id : VARCHAR(36) <<PK>>
+  name : VARCHAR(100) NOT NULL
+  slug : VARCHAR(120) NOT NULL
+  description : TEXT
+  parent_category_id : VARCHAR(36) <<FK>>
+}
+
+entity region_indicators {
+  * region_id : VARCHAR(36) <<PK>>
+  name : VARCHAR(100) NOT NULL
+  description : TEXT
+  map_url : VARCHAR(500)
+}
+
+entity content_items {
+  * content_id : VARCHAR(36) <<PK>>
+  title : VARCHAR(255) NOT NULL
+  description : TEXT
+  media_type : VARCHAR(20) NOT NULL
+  source_url : TEXT
+  region_tag : VARCHAR(100)
+  status : VARCHAR(20) NOT NULL
+  author_id : VARCHAR(36) <<FK>>
+  reviewer_id : VARCHAR(36) <<FK>>
+  reviewed_at : TIMESTAMP
+  approver_id : VARCHAR(36) <<FK>>
+  published_at : TIMESTAMP
+  duration_seconds : INT
+  word_count : INT
+  file_url : VARCHAR(1000)
+  thumbnail_url : VARCHAR(1000)
+  is_jindungo : BOOLEAN NOT NULL
+  region_id : VARCHAR(36) <<FK>>
+  topic_id : VARCHAR(36) <<FK>>
+}
+
+entity content_stats {
+  * stats_id : VARCHAR(36) <<PK>>
+  content_id : VARCHAR(36) <<FK>>
+  view_count : BIGINT NOT NULL
+  share_count : BIGINT NOT NULL
+  comment_count : BIGINT NOT NULL
+  last_updated : TIMESTAMP NOT NULL
+}
+
+entity content_likes {
+  * like_id : VARCHAR(36) <<PK>>
+  content_id : VARCHAR(36) <<FK>>
+  user_id : VARCHAR(36) <<FK>>
+  liked_at : TIMESTAMP NOT NULL
+}
+
+entity post_likes {
+  * like_id : VARCHAR(36) <<PK>>
+  post_id : VARCHAR(36) <<FK>>
+  user_id : VARCHAR(36) <<FK>>
+  liked_at : TIMESTAMP NOT NULL
+}
+
+entity user_collections {
+  * collection_id : VARCHAR(36) <<PK>>
+  user_id : VARCHAR(36) NOT NULL
+  item_type : VARCHAR(20) NOT NULL
+  item_id : VARCHAR(36) NOT NULL
+  notification_pref : VARCHAR(10) NOT NULL
+  created_at : TIMESTAMP NOT NULL
+}
+
+entity quizzes {
+  * quiz_id : VARCHAR(36) <<PK>>
+  title : VARCHAR(255) NOT NULL
+  description : TEXT
+  passing_score : INT NOT NULL
+  status : VARCHAR(20) NOT NULL
+  author_id : VARCHAR(36) <<FK>>
+}
+
+entity questions {
+  * question_id : VARCHAR(36) <<PK>>
+  text : TEXT NOT NULL
+  type : VARCHAR(20) NOT NULL
+  points : INT NOT NULL
+  quiz_id : VARCHAR(36) <<FK>>
+}
+
+entity answer_options {
+  * option_id : VARCHAR(36) <<PK>>
+  text : TEXT NOT NULL
+  correct : BOOLEAN NOT NULL
+  question_id : VARCHAR(36) <<FK>>
+}
+
+entity quiz_attempts {
+  * attempt_id : VARCHAR(36) <<PK>>
+  taken_at : TIMESTAMP NOT NULL
+  score : INT NOT NULL
+  completed : BOOLEAN NOT NULL
+  quiz_id : VARCHAR(36) <<FK>>
+  user_id : VARCHAR(36) <<FK>>
+}
+
+entity content_item_categories {
+  content_id : VARCHAR(36) <<PK>> <<FK>>
+  category_id : VARCHAR(36) <<PK>> <<FK>>
+}
+
+users ||--o{ user_profiles : tem
+users ||--o{ notifications : recebe
+users ||--o{ topics : cria
+users ||--o{ forum_threads : cria
+users ||--o{ posts : publica
+users ||--o{ comments : escreve
+users ||--o{ content_likes : curte
+users ||--o{ post_likes : curte
+users ||--o{ user_collections : organiza
+users ||--o{ quiz_attempts : realiza
+
+topics ||--o{ forum_threads : agrupa
+topics ||--o{ content_items : associa
+
+forum_threads ||--o{ posts : contém
+
+posts ||--o{ comments : recebe
+content_items ||--o{ comments : recebe
+comments ||--o{ comments : responde
+
+categories ||--o{ categories : tem subcategoria
+categories ||--o{ content_item_categories : classifica
+content_items ||--o{ content_item_categories : classifica
+
+content_items ||--o| content_stats : tem
+content_items ||--o{ content_likes : recebe
+content_items }o--|| region_indicators : pertence a
+content_items }o--|| topics : pertence a
+
+quizzes ||--o{ questions : contém
+questions ||--o{ answer_options : possui
+quizzes ||--o{ quiz_attempts : recebe
+
+@enduml
